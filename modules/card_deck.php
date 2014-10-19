@@ -80,10 +80,19 @@ class CardDeck
         }
 
     }
+	
+	public function shuffleDeck()
+	{
+		if (!empty($this->deck)
+		{
+			shuffle($this->deck);
+		}
+	}
 }
 
 //$card = new Card(CardColor::Clubs, CardWeight::King);
 $deck = new CardDeck();
+$deck->shuffleDeck();
 echo($deck->getCard(CardColor::Hearts, CardWeight::King) . "\n");
 echo($deck->getCard(CardColor::Spades, CardWeight::Ace) . "\n");
 echo($deck->getCard(CardColor::Diamonds, 2) . "\n");
