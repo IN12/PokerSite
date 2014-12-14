@@ -89,9 +89,9 @@ class Database
 
     /**
      * Tries to insert a record
-     * @param string $sqlCommand SQL INSERT / UPDATE command to execute
+     * @param string $sqlCommand SQL INSERT / UPDATE / DELETE command to execute
      * @param array $data Array of parameters
-     * @return bool Returns true if data is successfully inserted
+     * @return bool Returns true if data is successfully changed
      * @throws PDOException
      */
     public function executePreparedStatement($sqlCommand, $data)
@@ -128,7 +128,7 @@ class Database
 
     /**
      * Tries to execute an SQL command which does not
-     * return any data other than the affected rows
+     * return any data other than the number of the affected rows
      * @param string $sqlCommand Command to execute
      * @return int Rows affected
      * @throws PDOException
