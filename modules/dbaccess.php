@@ -88,7 +88,7 @@ class Database
     }
 
     /**
-     * Tries to execute an SQL command
+     * Tries to insert a record
      * @param string $sqlCommand SQL INSERT / UPDATE / DELETE command to execute
      * @param array $data Array of parameters
      * @return bool Returns true if data is successfully changed
@@ -145,40 +145,6 @@ class Database
     private function isNullOrEmpty($str)
     {
         return (!isset($str) || (strlen($str) == 0));
-    }
-}
-
-class Entities
-{
-    /**
-     * Tries to fetch an entity of 'Param' type
-     * Returns an stdClass object with named properties
-     * If no entities are found, returns an empty array
-     */
-    public static function getParam($name)
-    {
-        try
-        {
-            $db = new Database("pokerdb",'localhost',"root","");
-            $arr = $db->parameterizedSelect(
-                "SELECT * FROM Param WHERE Name LIKE ?", array("%{$name}%"));
-        }
-        catch (PDOException $ex) { throw $ex; }
-    }
-
-    /**
-     * Tries to update an entity of 'Param' type
-     */
-    public static function setParam($name, $newValue)
-    {
-        try
-        {
-            $db = new Database("pokerdb",'localhost',"root","");
-            $db->executePreparedStatement(
-                "UPDATE Param SET Value=:newValue WHERE Name LIKE :nameToFind",
-                array(":newValue" => $newValue, ":nameToFind" => "%{$name}%"));
-        }
-        catch (PDOException $ex) { throw $ex; }
     }
 }
 
