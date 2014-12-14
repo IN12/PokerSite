@@ -160,7 +160,7 @@ class Entities
         try
         {
             $db = new Database("pokerdb",'localhost',"root","");
-            $arr = $db->parameterizedSelect(
+            return $db->parameterizedSelect(
                 "SELECT * FROM Param WHERE Name LIKE ?", array("%{$name}%"));
         }
         catch (PDOException $ex) { throw $ex; }
