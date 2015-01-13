@@ -6,6 +6,7 @@ padding:0px;
 
 html,body 
 {
+background-color:#251103;
 height:100%;
 padding:0px;
 margin:0px;
@@ -15,4 +16,39 @@ div
 {
 padding:0px;
 margin:0px;
+}
+
+#table
+{
+position:relative;
+width:960px;
+height:960px;
+margin:0px auto;
+background-color:#02842d;
+}
+
+.footbar-margin
+{
+height:120px;
+}
+
+.footbar
+{
+height:100px;
+position:fixed;
+bottom:0px;
+width:100%;
+left:0px;
+background-color:#888;
+}
+
+.frame
+{
+border: 1px dashed red;
+}
+
+.card
+{
+position:absolute;
+background-size:contain;
 }

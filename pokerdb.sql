@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 14, 2014 at 01:50 PM
+-- Generation Time: Jan 13, 2015 at 03:56 PM
 -- Server version: 5.6.16
 -- PHP Version: 5.5.11
 
@@ -32,6 +32,45 @@ CREATE TABLE IF NOT EXISTS `param` (
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Dumping data for table `param`
+--
+
+INSERT INTO `param` (`name`, `value`) VALUES
+('dealercards', ''),
+('lastupdate', '2015-01-13 15:56:50'),
+('message', ''),
+('playercount', '0'),
+('stage', '0');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `player`
+--
+
+CREATE TABLE IF NOT EXISTS `player` (
+  `id` int(11) NOT NULL,
+  `sid` varchar(32) NOT NULL,
+  `hand` mediumtext NOT NULL,
+  `funds` int(11) NOT NULL,
+  `data` mediumtext NOT NULL,
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `player`
+--
+
+INSERT INTO `player` (`id`, `sid`, `hand`, `funds`, `data`, `user_id`) VALUES
+(1, 'k6s198hplbpev5gqe1uvjuc6k3', '', 5000, '', 0),
+(2, '', '', 5000, '', 0),
+(3, '', '', 5000, '', 0),
+(4, '', '', 5000, '', 0),
+(5, '', '', 5000, '', 0),
+(6, '', '', 5000, '', 0);
+
 -- --------------------------------------------------------
 
 --
@@ -50,9 +89,7 @@ CREATE TABLE IF NOT EXISTS `session` (
 --
 
 INSERT INTO `session` (`sid`, `lastupdate`, `ip`) VALUES
-('fjr2f4ffi7l4g2ln9q6v8tmns0', '2014-12-14 13:50:49', '89.132.118.170'),
-('gr8tffmcrfkegp41tldmi3uj10', '2014-12-14 13:50:49', '77.79.28.106'),
-('id71nvh4r3q4e52l0bi3bhjvv7', '2014-12-14 13:50:49', '78.58.90.220');
+('k6s198hplbpev5gqe1uvjuc6k3', '2015-01-13 15:56:54', '77.79.28.106');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

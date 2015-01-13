@@ -81,7 +81,8 @@ class CardDeck implements Iterator, ArrayAccess
             {
                 for ($j = 2; $j <= 14; $j++)
                 {
-                    $card = new Card($i, $j, $frontImages[$idx]);
+                    //$card = new Card($i, $j, $frontImages[$idx]);//frontImages alternative
+					$card = new Card($i, $j, $this->buildImage($i, $j));
                     array_push($this->deck, $card);
                     $idx++;
                 }
@@ -90,7 +91,28 @@ class CardDeck implements Iterator, ArrayAccess
         }
         else throw new InvalidArgumentException();
     }
-
+	
+	/* build frontImage name */
+	public function buildImage($i, $j)
+    {
+        if (($j >= 11) && ($j <= 14))
+        {
+            return strtolower($this->getConstantName("CardWeight", $j) . "_of_" .
+                $this->getConstantName("CardColor", $i) . ".png");
+        }
+        else
+        {
+            return strtolower($j . "_of_" .
+                $this->getConstantName("CardColor", $i) . ".png");
+        }
+    }
+	
+	private static function getConstantName($class, $value)
+    {
+        $map = array_flip((new \ReflectionClass($class))->getConstants());
+        return (array_key_exists($value, $map) ? $map[$value] : null);
+    }
+	
     /**
      * Tries to get the required card from the deck.
      */
@@ -164,12 +186,12 @@ class CardDeck implements Iterator, ArrayAccess
 
 $deck = new CardDeck(range(0,51) /*array (front images)*/, "backImage" /*back image*/);
 
-foreach ($deck as $card)
-    echo($card."\n");
+/*foreach ($deck as $card)
+    echo($card."<br>");
 
 $deck->shuffleDeck(1000); // shuffle n times
 
 for ($i = 0; $i < 52; $i++)
-    echo($deck[$i]."\n");
-
+    echo($deck[$i]."<br>");
+*/
 ?>

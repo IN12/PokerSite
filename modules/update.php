@@ -2,84 +2,118 @@
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 
-function sendMsg($id , $msg) {
-  echo "id: $id" . PHP_EOL;
-  echo "data: {\n";
-  echo "data: \"msg\": \"$msg\", \n";
-  echo "data: \"id\": $id\n";
-  echo "data: }\n";
-  echo PHP_EOL;
-  ob_flush();
-  flush();
+session_start();
+$session_id=session_id();
+session_destroy(); //otherwise renewSession.php fails
+
+function sendMessage($id , $message)
+{
+	echo "id: $id" . PHP_EOL;
+	echo "data:".$message."\n";
+	echo PHP_EOL;
+	ob_flush();
+	flush();
 }
 
-$maxlifetime = 15;
-$startedAt = time();
 include "../modules/dbaccess.php";
 $dbObj = new Database("pokerdb",'localhost',"root","");
+$params = new Entities();
+
+$lastupdate = 0;//$params->getParam('lastupdate')[0]->value;
 		
 while(true)
 {
-	if ((time() % 10) % 5 == 0)
+    //if script's session not in db then kill script
+	$sqlCommand = 'SELECT sid FROM session WHERE sid=:sid';
+	$data = array (":sid" => $session_id);
+	$session_alive = $dbObj->parameterizedSelect($sqlCommand, $data);
+	
+	if (empty($session_alive[0]->sid)) {die();}
+
+	/*if ((time() % 10) % 5 == 0) //cleanup old sessions
 	{
 		$sqlCommand = 'DELETE FROM session
 						WHERE TIMESTAMPDIFF(second,session.lastupdate,:time) > :seconds';
 		$ddate = new DateTime();
 		$data = array (":seconds" => $maxlifetime, ":time" => $ddate->format('Y-m-d H:i:s'));
 		$dbObj->executePreparedStatement($sqlCommand, $data);
-		
-		//die();
-	}
+	}*/ //moved to main.php for efficiency
 	
-	/*if ((time() - $startedAt) > 30)
+	/*test database for updates and push them to client*/
+	$thisupdate = $params->getParam('lastupdate')[0]->value;
+	
+	//is player? test
+	$pdata = array (":sid" => $session_id);
+	$sqlCommand = "SELECT id FROM player WHERE sid = :sid";
+	
+	if ($thisupdate > $lastupdate)
 	{
-		die();
-	}*/
-	
-	$renewSession=0;
-	if ((time()+1 % 10) % 5 == 0)
-	{
-		$renewSession=1;
-	}
-	
-	//echo "id: ".$startedAt."\n";
-	$date = new DateTime();
-	$fdate = $date->format('Y-m-d H:i:s');
-
-	$sessions = $dbObj->select("SELECT * FROM session");
-	
-	/*echo "data: ".$date->format('Y-m-d H:i:s')."\n";
-	echo "data: ".$renewSession."\n\n";*/
-	echo "id: $startedAt".PHP_EOL;
-	echo "data: {".PHP_EOL;
-	echo "data: \"test\": \"$fdate\", ".PHP_EOL;
-	echo "data: \"renewSession\": $renewSession,".PHP_EOL;
-	echo "data: \"sessions\":[".PHP_EOL; 
-	
-	$commaiterator=0;
-	$count = count($sessions);
-	foreach ($sessions as $session)
-	{
-		$commaiterator+=1;
-		$sid=$session->sid;
-		$lastupdate=$session->lastupdate;
-		$ip=$session->ip;
-		echo "data: {".PHP_EOL;
-		echo "data: \"sid\": \"".$session->sid."\",".PHP_EOL;
-		echo "data: \"lastupdate\": \"".$session->lastupdate."\",".PHP_EOL;
-		echo "data: \"ip\": \"".$session->ip."\"".PHP_EOL;
-		echo "data: }".PHP_EOL;
-		if ($commaiterator<$count)
+		if (!empty($dbObj->parameterizedSelect($sqlCommand, $pdata)))
 		{
-			echo "data: ,".PHP_EOL;
+			$lastupdate = $thisupdate;
+			$stage = intval($params->getParam('stage')[0]->value);
+			
+			switch($stage)
+			{
+				case 0:
+					$content = '';
+					break;
+				case 1:
+					$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
+					$hdata = array (":sid" => $session_id);
+
+					$sqlCommand = "SELECT id, hand FROM player WHERE sid = :sid";
+					$hand = $dbObj->parameterizedSelect($sqlCommand, $hdata);
+					if (!empty($hand))
+					$pid = intval($hand[0]->id);
+					$hand = $hand[0]->hand;
+					
+					$content = array( "stage" => $stage, "hand" => json_decode($hand), "owner" => $pid, "players" => $players );
+					break;
+				case 2:
+					break;
+				case 3:
+				case 5:
+					$dealercards = $params->getParam('dealercards')[0]->value;
+					
+					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards) );
+				case 7:
+					$dealercards = $params->getParam('dealercards')[0]->value;
+					$players = $dbObj->select("SELECT id,hand FROM player WHERE sid <> ''");
+					$hands = [];
+					foreach ($players as $pair)
+					{
+						array_push($hands, array( "id" => intval($pair->id), "hand" => json_decode($pair->hand)));
+					}
+					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards), "hands" => $hands);
+					break;
+				case 8:
+					$content = '';
+					break;
+			}
+			
+			
+			$message = array( "type" => 2, "message" => $content );
+			sendMessage($lastupdate, json_encode($message));
 		}
 	}
 	
-	echo "data: ]".PHP_EOL;
-	echo "data: }".PHP_EOL;
-	echo PHP_EOL;
-	ob_flush();
-	flush();
+	if ((time()+1 % 10) % 5 == 0)
+	{
+		$message = array( "type" => 1, "message" => "" );
+		sendMessage($lastupdate, json_encode($message));
+	}
+	
+	
+		//echo "id: ".$startedAt."\n";
+		$date = new DateTime();
+		$fdate = $date->format('Y-m-d H:i:s');
+
+		$sessions = $dbObj->select("SELECT * FROM session");
+		
+		$message = array( "type" => 0, "message" => $sessions );
+		sendMessage($lastupdate, json_encode($message));
+	
 	sleep(1);
 }
 ?>
