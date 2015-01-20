@@ -79,15 +79,30 @@ while(true)
 					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards) );
 				case 7:
 					$dealercards = $params->getParam('dealercards')[0]->value;
-					$players = $dbObj->select("SELECT id,hand FROM player WHERE sid <> ''");
+					
+					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards));
+					break;
+				case 8:
+					break;
+				case 9:
+					$players = $dbObj->select("SELECT id,hand,eval FROM player WHERE sid <> ''");
+					
 					$hands = [];
 					foreach ($players as $pair)
 					{
 						array_push($hands, array( "id" => intval($pair->id), "hand" => json_decode($pair->hand)));
 					}
-					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards), "hands" => $hands);
+					
+					$results = [];
+				
+					foreach ($players as $result)
+					{
+						array_push($results, array( "id" => intval($result->id), "eval" => json_decode($result->eval)));
+					}
+					
+					$content = array( "stage" => $stage, "results" => $results,  "hands" => $hands);
 					break;
-				case 8:
+				case 10:
 					$content = '';
 					break;
 			}

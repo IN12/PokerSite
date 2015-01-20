@@ -1,6 +1,48 @@
 <?php
 
-class pokertexasholdem {
+class HandEvaluation
+{
+    public $Score = 0;
+    public $Note = "";
+    public $Cards = array();
+    public $objHand = array();
+
+    public function __construct($f_cards){
+        $this->Cards = $this->check($f_cards);
+        $this->get_score($this->Cards);
+    }
+
+    function check($f_cards){
+        $card = explode("," , $f_cards);
+        $cards = array();
+        $suit=0;
+        $value=0;
+
+        foreach ($card as $value){
+            $suit = intval(substr($value, 0, 1));
+            $value = intval(substr($value, 1));
+
+            if ($value == 14)
+                $value = 0;
+            else
+                $value --;
+
+            array_push($cards,(int)($suit*13 + $value));
+        }
+        return $cards;
+    }
+
+    function get_score($f_cards){
+
+        foreach ($f_cards as $value)
+            array_push($this->objHand, new CardToEvaluate((int)$value));
+
+        $this->Score = TexasHoldem::score($this->objHand);
+        $this->Note = TexasHoldem::readable_hand($this->Score);
+    }
+}
+
+class TexasHoldem {
 	public $cards = array();
 	public $values = array();
 	public $num_values = array();
@@ -399,4 +441,67 @@ class pokertexasholdem {
 	}
 }
 
+class CardToEvaluate {
+    public $id = -1;
+    public $name = '';
+    public $suit = '';
+    public $value = -1;
+    public $short = '';
+    public $pth = -1;
+    public function __construct($f_iCard) {
+        $iCard = (int)$f_iCard%52;
+        $iSuit = floor($iCard/13);
+        $iName = $iCard%13;
+
+        $arrSuits = array('clubs', 'diamonds', 'hearts', 'spades');
+        $arrNames = array('ace', 'two', 'three', 'four', 'five', 'six',
+            'seven', 'eight', 'nine', 'ten', 'jack', 'queen', 'king');
+        $arrShorts = array('a', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k');
+        $arrValues = array(11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10);
+        $arrPTHValues = array(14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+
+        $this->id = $iCard;
+        $this->suit = $arrSuits[$iSuit];
+        $this->name = $arrNames[$iName];
+        $this->value = $arrValues[$iName];
+        $this->short = $arrShorts[$iName];
+        $this->pth = $arrPTHValues[$iName];
+    }
+}
+
+class Deck {
+    public $iNextCard = 0; # protected
+    public $cards = array(); # protected
+    public function __construct($f_bFill = true) {
+        if ( $f_bFill ) {
+            foreach ( range(0, 51) AS $iCard ) {
+                array_push($this->cards, new CardToEvaluate($iCard));
+            }
+        }
+    }
+    public function next() {
+        if ( !isset($this->cards[$this->iNextCard]) ) {
+            return null;
+        }
+        return $this->cards[$this->iNextCard++];
+    }
+    public function size() {
+        return (count($this->cards)-$this->iNextCard);
+    }
+    public function add_deck(Deck $objDeck) {
+        $this->cards = array_merge($this->cards, $objDeck->cards);
+        return $this;
+    }
+    public function add_card(CardToEvaluate $objCard) {
+        array_push($this->cards, $objCard);
+        return $this;
+    }
+    public function shuffle() {
+        return shuffle($this->cards);
+    }
+    public function replenish() {
+        $this->iNextCard = 0;
+        $this->shuffle();
+    }
+}
 ?>

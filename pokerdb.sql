@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 13, 2015 at 03:56 PM
+-- Generation Time: Jan 20, 2015 at 07:13 PM
 -- Server version: 5.6.16
 -- PHP Version: 5.5.11
 
@@ -37,8 +37,10 @@ CREATE TABLE IF NOT EXISTS `param` (
 --
 
 INSERT INTO `param` (`name`, `value`) VALUES
+('abort', '0'),
 ('dealercards', ''),
-('lastupdate', '2015-01-13 15:56:50'),
+('handbrake', '0'),
+('lastupdate', '2015-01-20 19:13:20'),
 ('message', ''),
 ('playercount', '0'),
 ('stage', '0');
@@ -53,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `player` (
   `id` int(11) NOT NULL,
   `sid` varchar(32) NOT NULL,
   `hand` mediumtext NOT NULL,
+  `eval` mediumtext NOT NULL,
   `funds` int(11) NOT NULL,
   `data` mediumtext NOT NULL,
   `user_id` int(11) NOT NULL,
@@ -63,13 +66,13 @@ CREATE TABLE IF NOT EXISTS `player` (
 -- Dumping data for table `player`
 --
 
-INSERT INTO `player` (`id`, `sid`, `hand`, `funds`, `data`, `user_id`) VALUES
-(1, 'k6s198hplbpev5gqe1uvjuc6k3', '', 5000, '', 0),
-(2, '', '', 5000, '', 0),
-(3, '', '', 5000, '', 0),
-(4, '', '', 5000, '', 0),
-(5, '', '', 5000, '', 0),
-(6, '', '', 5000, '', 0);
+INSERT INTO `player` (`id`, `sid`, `hand`, `eval`, `funds`, `data`, `user_id`) VALUES
+(1, '78luu5bq4e1q140lprbae7vdk1', '', '{"score":"0.1413120705","note":"High Cards A, K, Q, 7, 5"}', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0),
+(2, '', '', '', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0),
+(3, '', '', '', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0),
+(4, '', '', '', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0),
+(5, '', '', '', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0),
+(6, '', '', '', 5000, '{"action":0,"quit":0,"confirmed":0,"raise":0}', 0);
 
 -- --------------------------------------------------------
 
@@ -89,7 +92,7 @@ CREATE TABLE IF NOT EXISTS `session` (
 --
 
 INSERT INTO `session` (`sid`, `lastupdate`, `ip`) VALUES
-('k6s198hplbpev5gqe1uvjuc6k3', '2015-01-13 15:56:54', '77.79.28.106');
+('78luu5bq4e1q140lprbae7vdk1', '2015-01-20 19:13:24', '77.79.28.106');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

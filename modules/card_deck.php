@@ -48,9 +48,9 @@ class Card
 class CardColor //enum
 {
     const Clubs = 0;
-    const Spades = 1;
-    const Diamonds = 2;
-    const Hearts = 3;
+    const Diamonds = 1;
+    const Hearts = 2;
+    const Spades = 3;
 }
 
 class CardWeight //enum
@@ -161,6 +161,34 @@ class CardDeck implements Iterator, ArrayAccess
         else throw new InvalidArgumentException("Deck contains no cards.");
     }
 
+    /**
+     * Tries to parse the string from the given array of cards
+     * which is required for the evaluation of the hand
+     * @param $cards Array of PlayingCards
+     * @return string Specifically formatted string to use with the hand evaluator
+     */
+    public static function parseHand($cards)
+    {
+        $tempStr = "";
+        foreach ($cards as $card)
+        {
+            $tempStr .= $card->getColor() . $card->getWeight() . ",";
+        }
+        return substr($tempStr, 0, -1);
+    }
+	
+	//JSON variant to handle stdClass/Card object mismatch
+	public static function parseHandJSON($cards)
+    {
+		$parsed_cards = [];
+        $length = count($cards);
+		for ($i = 0; $i < $length; $i++)
+		{
+			$parsed_cards[$i] = new Card($cards[$i]->color, $cards[$i]->weight, $cards[$i]->frontImage);
+		}
+		return CardDeck::parseHand($parsed_cards);
+    }
+	
     /**
      * Iterator interface implementation
      */

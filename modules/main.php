@@ -18,7 +18,7 @@ function sendMessage($id , $message)
 	ob_flush();
 	flush();
 }
-
+include "hand_evaluation.php";
 include "card_deck.php";
 $deck = new CardDeck(range(0,51), "backImage");
 $deck->shuffleDeck(1000);
@@ -35,17 +35,26 @@ function renewLU()
 	$params->setParam("lastupdate",$fdate);
 }
 
+function mergeCards($d_cards,$p_cards)
+{
+	$d_cards[5]=$p_cards[0];
+	$d_cards[6]=$p_cards[1];
+	return $d_cards;
+}
 
 $hand = [];
 $dealercards = [];
 $deckcounter = 0;
 $playercount = 0;
-$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = ''"); //justincase reset player sids in db
+$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = ''"); //justincase reset player sids in db
 $params ->setParam("dealercards","");
 $params->setParam("stage","0");
+$params->setParam("handbrake","0");
+$params->setParam("abort","0");
 
 $maxlifetime = 15; //max session age, seconds
 
+$handbrake = intval($params->getParam('handbrake')[0]->value);
 $sessions = $dbObj->select("SELECT * FROM session");
 //$players = $dbObj->select("SELECT * FROM player");
 
@@ -58,7 +67,7 @@ while(true)
 	while (empty($sessions)) //wait for clients
 	{
 		sleep(5);
-		sendMessage(time(),"no clients, waiting");
+		sendMessage(time(),"No clients, waiting");
 		$sessions = $dbObj->select("SELECT * FROM session");
 	}
 	
@@ -110,15 +119,31 @@ while(true)
 	
 	if ($timer==0) //game logic block
 	{
-		if ($nextstage==1)
+		$handbrake = intval($params->getParam('handbrake')[0]->value);
+		while ($handbrake)//handbreak
 		{
-			if ($stage < 8)	{$stage++;}
+			sleep(15);
+			sendMessage(time(),"Paused.");
+			$handbrake = intval($params->getParam('handbrake')[0]->value);
+			$abort = intval($params->getParam('abort')[0]->value);
+			
+			if ($abort)
+			{
+				sendMessage(time(),"=abort=");
+				exit();
+			}
+		}
+
+		if ($nextstage==1)		//stage advance
+		{
+			$nextstage = 0;
+			if ($stage < 10)	{$stage++;}
 			else {$stage = 0;}
 			$params->setParam("stage",$stage);
 		}
 		switch($stage)
 		{
-			case 0: //handle players joining
+			case 0: 			//handle players joining
 				$wildsessions = $dbObj->select("SELECT session.sid FROM session WHERE session.sid NOT IN ( SELECT player.sid FROM player)");
 				
 				foreach ($wildsessions as $wildsession)
@@ -171,13 +196,14 @@ while(true)
 				
 				break;
 				
-			case 2: //blind rotation
+			case 2: //preflop rotation
 			/*
 				renewLU();
 			
 				$timer = 10;
 				$stage = 3;
 				$params->setParam("stage",$stage);*/
+				$nextstage = 1;
 				break;
 				
 			case 3: //deal 3
@@ -196,6 +222,7 @@ while(true)
 				break;
 				
 			case 4: //1st rotation
+				$nextstage = 1;
 				break;
 				
 			case 5: //deal 4th
@@ -211,6 +238,7 @@ while(true)
 				break;
 				
 			case 6: //2nd rotation
+				$nextstage = 1;
 				break;
 				
 			case 7: //deal 5th
@@ -225,8 +253,31 @@ while(true)
 				$nextstage = 1;
 				break;
 				
-			case 8: //evaluate
-			
+			case 8: //3rd rotation
+				$nextstage = 1;
+				break;
+			case 9://evaluate
+				$players = $dbObj->select("SELECT id,sid,hand FROM player WHERE sid <> ''");
+				$dcards = $params->getParam('dealercards')[0]->value;
+				
+				foreach ($players as $player)
+				{
+					$pcards = $player->hand;
+					$ecards = mergeCards(json_decode($dcards),json_decode($pcards));
+					$handresult = new HandEvaluation(CardDeck::parseHandJSON($ecards));
+					
+					$edata = array(":sid" => $player->sid, ":eval"=>json_encode(Array("score" => $handresult->Score, "note" => $handresult->Note)));
+					$sqlCommand = "UPDATE player SET eval = :eval WHERE sid = :sid";
+					$dbObj->executePreparedStatement($sqlCommand, $edata);
+				}
+				
+				renewLU();
+				
+				$timer = 15;
+				$nextstage = 1;
+				break;
+			case 10: //reset
+				//reset all the things
 				$hand = [];
 				$dealercards = [];
 				$params ->setParam("dealercards","");
@@ -235,10 +286,6 @@ while(true)
 				$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = ''");
 				$sessions = $dbObj->select("SELECT * FROM session");
 				$deck->shuffleDeck(1000);
-				
-				renewLU();
-				
-				$timer = 8;
 				$nextstage = 1;
 				break;
 		}

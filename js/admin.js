@@ -1,3 +1,6 @@
+var main;
+var listening = 1;
+
 function jsInit()
 {
 	main = new EventSource('../modules/main.php');
@@ -12,4 +15,36 @@ function jsReceiveMessage(event)
 	var log = document.getElementById('test');
 	
 	log.innerHTML=timestamp+" "+event.data+'<br>'+log.innerHTML;
+}
+
+function jsHandbrake(input)
+{
+$.ajax({
+		url: '/modules/handbrake.php',
+		type: 'post',
+		success: function(data){
+				input.value='Handbrake: '+data;
+			}
+	})
+}
+
+function jsAbort(input)
+{
+$.ajax({
+		url: '/modules/abort.php',
+		type: 'post',
+		success: function(data){
+			input.value='Abort: '+data;
+				if (listening)
+				{
+					listening=0;
+					//main.removeEventListener('message', jsReceiveMessage, false);
+				}
+				else
+				{
+					listening=1;
+					//main.addEventListener('message', jsReceiveMessage, false);
+				}
+			}
+	})
 }
