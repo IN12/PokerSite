@@ -54,18 +54,18 @@ $dbObj->executePreparedStatement($sqlCommand, $data);
 	<div class="footbar">
 		<div class="footbar-center">
 			<div class="col">
-				<input type="radio" name="action" value="call" checked> Call <br>
-				<input type="radio" name="action" value="raise">  Raise
-				<input type="text" style="width:80px;"> <br>
-				<input type="radio" name="action" value="fold"> Fold <br>
-				<input type="radio" name="action" value="quit"> Quit
+				<input type="radio" name="action" value="0" checked> Call <br>
+				<input type="radio" name="action" value="1">  Raise
+				<input type="text" style="width:80px;" id="input-raise"> <br>
+				<input type="radio" name="action" value="2"> Fold <br>
+				<input type="button" value="Confirm" id="confirm">
+				<input type="button" value="Quit: 0" id="quit">
 			</div>
 			<div class="col">
-				<input type="button" value="Confirm"> <br>
-				Status: <span id="status"></span>
+				Status, on your turn: <br><span id="status"></span>
 			</div>
 			<div class="col">
-				<div id="log">
+				<div id="info">
 				</div>
 			</div>
 		</div>

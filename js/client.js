@@ -8,6 +8,10 @@ function jsInit()
 	updater = new EventSource('../modules/update.php');
 	updater.addEventListener('message', jsUpdate, false);
 	main_table = document.getElementById('table');
+	
+	document.getElementById('confirm').addEventListener('click', jsAction, false);
+	document.getElementById('quit').addEventListener('click', jsQuit, false);
+	
 	jsInitCards();
 	jsInitPlayerInfo();
 	jsInitSubfields();
@@ -128,6 +132,46 @@ function jsGameUpdate(message)
 		default:
 			break;
 	}
+}
+
+function jsAction(event)
+{
+	var action = 0;
+	var raise = 0;
+	
+	var selection = document.getElementsByName('action');
+	var len = selection.length;
+	for (var i = 0; i < len; i+=1)
+	{
+		if (selection[i].checked)
+		{
+			action = selection[i].value;
+			break;
+		}
+	}
+	raise = parseInt(document.getElementById('input-raise').value);
+
+	$.ajax({
+		type: 'POST',
+		url: 'modules/action.php',
+		data: {action: action, raise: raise},
+		success: function(data) 
+			{
+				document.getElementById('status').innerHTML=data;
+			}
+		})
+}
+
+function jsQuit()
+{
+	$.ajax({
+		type: 'POST',
+		url: 'modules/quit.php',
+		success: function(data) 
+			{
+				document.getElementById('quit').value="Quit: "+data;
+			}
+		})
 }
 
 function jsAddCard(x,y,owner,id)
