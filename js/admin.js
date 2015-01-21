@@ -12,9 +12,15 @@ function jsReceiveMessage(event)
 	//var data = JSON.parse(event.data);
 	var d = new Date(event.lastEventId * 1e3);
 	var timestamp = [d.getHours(), d.getMinutes(), d.getSeconds()].join(':');
-	var log = document.getElementById('test');
+	//var log = document.getElementById('test');
 	
-	log.innerHTML=timestamp+" "+event.data+'<br>'+log.innerHTML;
+	//log.innerHTML=timestamp+" "+event.data+'<br>'+log.innerHTML;
+	
+	var cc = $('#test').find("p").size();
+	if(cc >= 10){
+		$('#test').find("p").last().remove();
+	}
+	$('#test').prepend('<p class="bg-info">'+timestamp+' '+event.data+'</p>');
 }
 
 function jsHandbrake(input)
