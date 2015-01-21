@@ -54,6 +54,8 @@ border: 1px dashed red;
 position:absolute;
 background-size:contain;
 border-radius:3px;
+width:100px;
+height:145px;
 }
 
 .player-info-field
@@ -71,7 +73,7 @@ margin:3px;
 padding:2px;
 }
 
-#log
+#info
 {
 background-color:#BBB;
 border-radius:3px;

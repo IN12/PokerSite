@@ -193,8 +193,6 @@ function jsAddCard(x,y,owner,id)
 	card.style.top = y+'px';
 	card.style.display = "none";
 	//card.style.backgroundImage = "url('images/cards_small/back.png')";
-	card.style.width = '100px';
-	card.style.height = '145px';
 	main_table.appendChild(card);
 }
 
