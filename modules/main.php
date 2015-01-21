@@ -42,6 +42,21 @@ function mergeCards($d_cards,$p_cards)
 	return $d_cards;
 }
 
+function subtractFunds($dbObj, $player_id, $sub_funds)
+{
+	$playerFunds = $dbObj->select("SELECT funds FROM player WHERE id='$player_id'");
+	
+	if ($playerFunds[0]->funds - $sub_funds < 0) //jei nepakanka pinigu zaidejo saskaitoje, pridedam naujus 5000
+	{
+		$dbObj->executeSqlCommand("UPDATE player SET funds='5000' WHERE id='$player_id'");
+	}
+	else //jei saskaitoje pinigu uztektinai, atimame is jos tiek, kiek nurodyta, viska irasome duombazeje
+	{
+		$newFunds = $playerFunds[0]->funds - $sub_funds;
+		$dbObj->executeSqlCommand("UPDATE player SET funds='$newFunds' WHERE id='$player_id'");
+	}
+}
+
 $hand = [];
 $dealercards = [];
 $deckcounter = 0;
