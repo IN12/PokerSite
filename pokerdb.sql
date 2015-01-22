@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 21, 2015 at 09:00 PM
+-- Generation Time: Jan 22, 2015 at 11:57 AM
 -- Server version: 5.6.16
 -- PHP Version: 5.5.11
 
@@ -38,13 +38,15 @@ CREATE TABLE IF NOT EXISTS `param` (
 
 INSERT INTO `param` (`name`, `value`) VALUES
 ('abort', '0'),
-('currentbet', '0'),
-('dealercards', '[{"color":0,"weight":14,"frontImage":"ace_of_clubs.png"},{"color":2,"weight":3,"frontImage":"3_of_hearts.png"},{"color":3,"weight":6,"frontImage":"6_of_spades.png"},{"color":1,"weight":12,"frontImage":"queen_of_diamonds.png"},{"color":1,"weight":13,"frontImage":"king_of_diamonds.png"}]'),
+('currentbet', '50'),
+('dealercards', '[{"color":2,"weight":11,"frontImage":"jack_of_hearts.png"},{"color":1,"weight":5,"frontImage":"5_of_diamonds.png"},{"color":1,"weight":4,"frontImage":"4_of_diamonds.png"},{"color":0,"weight":8,"frontImage":"8_of_clubs.png"},{"color":2,"weight":8,"frontImage":"8_of_hearts.png"}]'),
+('entrancefee', '50'),
 ('handbrake', '0'),
-('lastupdate', '2015-01-21 21:00:25'),
+('lastupdate', '2015-01-22 11:57:35'),
 ('message', ''),
 ('playercount', '0'),
-('stage', '8');
+('pot', '50'),
+('stage', '10');
 
 -- --------------------------------------------------------
 
@@ -71,9 +73,9 @@ CREATE TABLE IF NOT EXISTS `player` (
 --
 
 INSERT INTO `player` (`id`, `sid`, `hand`, `eval`, `funds`, `bet`, `data`, `quit`, `lastupdate`, `user_id`) VALUES
-(1, '3nj0imcpferd67p2l4emrhqiq6', '[{"color":2,"weight":10,"frontImage":"10_of_hearts.png"},{"color":1,"weight":7,"frontImage":"7_of_diamonds.png"}]', '{"score":"0.1410080706","note":"High Cards A, 10, 8, 7, 6"}', 5000, 0, '{"action":1,"confirmed":1,"raise":20}', 0, '2015-01-21 20:15:45', 0),
-(2, '78luu5bq4e1q140lprbae7vdk1', '[{"color":2,"weight":13,"frontImage":"king_of_hearts.png"},{"color":2,"weight":12,"frontImage":"queen_of_hearts.png"}]', '{"score":"0.1410080704","note":"High Cards A, 10, 8, 7, 4"}', 5000, 0, '{"action":0,"confirmed":1,"raise":0}', 0, '2015-01-21 20:57:59', 0),
-(3, 'gt10d83624tgqkft47ivqv6875', '[{"color":2,"weight":11,"frontImage":"jack_of_hearts.png"},{"color":2,"weight":5,"frontImage":"5_of_hearts.png"}]', '{"score":"1.02141007","note":"One Pair of Twos"}', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '', 0),
+(1, '3u1gurbfqif3ed9rs8vo1h7k47', '[{"color":0,"weight":2,"frontImage":"2_of_clubs.png"},{"color":3,"weight":8,"frontImage":"8_of_spades.png"}]', '{"score":"3.081105","note":"Three Of A Kind - Eights"}', 4050, 50, '{"action":2,"confirmed":1,"raise":45645}', 0, '2015-01-22 11:35:34', 0),
+(2, '78luu5bq4e1q140lprbae7vdk1', '[{"color":1,"weight":6,"frontImage":"6_of_diamonds.png"},{"color":2,"weight":10,"frontImage":"10_of_hearts.png"}]', '{"score":"1.08111006","note":"One Pair of Eights"}', 5000, 0, '{"action":0,"confirmed":1,"raise":0}', 0, '2015-01-22 11:53:35', 0),
+(3, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '', 0),
 (4, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '', 0),
 (5, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '', 0),
 (6, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '', 0);
@@ -96,9 +98,8 @@ CREATE TABLE IF NOT EXISTS `session` (
 --
 
 INSERT INTO `session` (`sid`, `lastupdate`, `ip`) VALUES
-('3nj0imcpferd67p2l4emrhqiq6', '2015-01-21 21:00:29', '78.58.199.223'),
-('78luu5bq4e1q140lprbae7vdk1', '2015-01-21 21:00:29', '77.79.28.106'),
-('gt10d83624tgqkft47ivqv6875', '2015-01-21 21:00:29', '86.100.43.70');
+('3u1gurbfqif3ed9rs8vo1h7k47', '2015-01-22 11:57:34', '78.58.90.220'),
+('78luu5bq4e1q140lprbae7vdk1', '2015-01-22 11:57:34', '77.79.28.106');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

@@ -56,7 +56,7 @@ $dbObj->executePreparedStatement($sqlCommand, $data);
 			<div class="col">
 				<input type="radio" name="action" value="0" checked> Call <br>
 				<input type="radio" name="action" value="1">  Raise
-				<input type="text" style="width:80px;" id="input-raise"> <br>
+				<input type="number" style="width:80px;" id="input-raise"> <br>
 				<input type="radio" name="action" value="2"> Fold <br>
 				<input type="button" value="Confirm" id="confirm">
 				<input type="button" value="Quit: 0" id="quit">

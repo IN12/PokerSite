@@ -71,6 +71,8 @@ background-color:#BBB;
 border-radius:3px;
 margin:3px;
 padding:2px;
+text-align:center;
+/*font-weight:bold;*/
 }
 
 #info
@@ -84,6 +86,7 @@ height:82px;
 
 .playerId
 {
+font-weight:bold;
 color:#BB0505;
 }
 

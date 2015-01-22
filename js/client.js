@@ -61,6 +61,10 @@ function jsUpdate(event)
 				jsAddCard(50*(i+1)+'px',50*(i+1)+'px',data.message[i].frontImage,0,i);
 			}*/
 			break;
+		case 3:
+			console.log(event.data);
+			jsInfoUpdate(data.message);
+			break;
 	}
 		
 	//document.getElementById('table').innerHTML=event.data;
@@ -69,6 +73,28 @@ function jsUpdate(event)
 function jsRenewSession()
 {
 	$.post('../modules/renewSession.php');
+}
+
+function jsInfoUpdate(message)
+{
+	var len = message.length;
+	for (var i = 0; i < len; i+=1)
+	{
+		var id = message[i].id;
+		players[id].playerFunds.innerHTML = 'Funds: ' + message[i].funds;
+		players[id].playerBet.innerHTML = 'Player\'s bet: ' + message[i].bet;
+		switch(message[i].data.action)
+		{
+			case 0:
+				players[id].playerAction.innerHTML = 'Planning to call...';
+				break;
+			case 1:
+				players[id].playerAction.innerHTML = 'Planning to raise by '+message[i].data.raise;
+				break;
+			case 2:
+				players[id].playerAction.innerHTML = 'Planning to fold.';
+		}
+	}
 }
 
 function jsGameUpdate(message)
@@ -327,24 +353,30 @@ function jsInitSubfields()
 	for (var j=1; j < 7; j+=1)
 	{
 		jsAddInfoSubfield(j, 'playerName', '18px');
-		players[j].playerName.innerHTML='placeholdername';
+		players[j].playerName.innerHTML='-';
 	}
 	//player funds
 	for (var j=1; j < 7; j+=1)
 	{
 		jsAddInfoSubfield(j, 'playerFunds', '18px');
-		players[j].playerFunds.innerHTML='placeholderfunds';
+		players[j].playerFunds.innerHTML='-';
+	}
+	//player bet
+	for (var j=1; j < 7; j+=1)
+	{
+		jsAddInfoSubfield(j, 'playerBet', '18px');
+		players[j].playerBet.innerHTML='-';
 	}
 	//player actions
 	for (var j=1; j < 7; j+=1)
 	{
-		jsAddInfoSubfield(j, 'playerAction', '18px');
-		players[j].playerAction.innerHTML='placeholderaction';
+		jsAddInfoSubfield(j, 'playerAction', '36px');
+		players[j].playerAction.innerHTML='-';
 	}
 	//player end combo
 	for (var j=1; j < 7; j+=1)
 	{
-		jsAddInfoSubfield(j, 'playerHand', '72px');
-		players[j].playerHand.innerHTML='placeholderhand';
+		jsAddInfoSubfield(j, 'playerHand', '54px');
+		players[j].playerHand.innerHTML='-';
 	}
 }

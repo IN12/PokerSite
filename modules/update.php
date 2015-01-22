@@ -19,6 +19,8 @@ include "../modules/dbaccess.php";
 $dbObj = new Database("pokerdb",'localhost',"root","");
 $params = new Entities();
 
+$startdate = new DateTime();
+$lastinfoupdate = $startdate->format('Y-m-d H:i:s');
 $lastupdate = 0;//$params->getParam('lastupdate')[0]->value;
 $type = 2;
 		
@@ -40,6 +42,33 @@ while(true)
 		$dbObj->executePreparedStatement($sqlCommand, $data);
 	}*/ //moved to main.php for efficiency
 	
+	/*test db for player info updates and push to client */
+	$infoquery = $dbObj->select("SELECT lastupdate FROM `player` WHERE sid <> '' ORDER BY lastupdate DESC LIMIT 1");
+	if (!empty($infoquery))
+	$thisinfoupdate = $infoquery[0]->lastupdate;
+	{
+		if ($thisinfoupdate > $lastinfoupdate) //updates in player info
+		{
+			$sqlCommand = "SELECT id,funds,bet,data,quit FROM player
+							WHERE TIMESTAMPDIFF(second,:time,player.lastupdate) >= 0 AND sid <> ''";
+			$ddate = new DateTime();
+			$data = array (":time" => $lastinfoupdate);
+			$playerinfo = $dbObj->parameterizedSelect($sqlCommand, $data);
+			
+			$lastinfoupdate = $thisinfoupdate;
+			
+			$info = [];
+			foreach ($playerinfo as $player)
+			{
+				array_push($info, array( "id" => $player->id, "funds" => $player->funds, "bet" => $player->bet, "data" => json_decode($player->data), "quit" => $player->quit ));
+			}
+			//$info = count($playerinfo);
+			$message = array( "type" => 3, "message" => $info );
+			
+			sendMessage($lastinfoupdate, json_encode($message));
+		}
+	}
+	
 	/*test database for updates and push them to client*/
 	$thisupdate = $params->getParam('lastupdate')[0]->value;
 	
@@ -47,7 +76,7 @@ while(true)
 	$pdata = array (":sid" => $session_id);
 	$sqlCommand = "SELECT id FROM player WHERE sid = :sid";
 	
-	if ($thisupdate > $lastupdate)
+	if ($thisupdate > $lastupdate) //updates in game state
 	{
 		if (!empty($dbObj->parameterizedSelect($sqlCommand, $pdata)[0]->id))
 		{
@@ -71,6 +100,7 @@ while(true)
 					$content = array( "stage" => $stage, "hand" => json_decode($hand), "owner" => $pid, "players" => $players );
 					break;
 				case 2:
+					$content = array( "stage" => $stage);
 					break;
 				case 3:
 				case 5:

@@ -42,13 +42,15 @@ function mergeCards($d_cards,$p_cards)
 	return $d_cards;
 }
 
-function subtractFunds($dbObj, $player_id, $sub_funds)
+function subtractFunds($player_id, $sub_funds)
 {
+	global $dbObj;
 	$playerFunds = $dbObj->select("SELECT funds FROM player WHERE id='$player_id'");
 	
 	if ($playerFunds[0]->funds - $sub_funds < 0) //jei nepakanka pinigu zaidejo saskaitoje, pridedam naujus 5000
 	{
-		$dbObj->executeSqlCommand("UPDATE player SET funds='5000' WHERE id='$player_id'");
+		$newFunds = $playerFunds[0]->funds + 5000 - $sub_funds;
+		$dbObj->executeSqlCommand("UPDATE player SET funds='$newFunds' WHERE id='$player_id'");
 	}
 	else //jei saskaitoje pinigu uztektinai, atimame is jos tiek, kiek nurodyta, viska irasome duombazeje
 	{
@@ -57,9 +59,24 @@ function subtractFunds($dbObj, $player_id, $sub_funds)
 	}
 }
 
+function raiseBet($player_id, $raise)
+{
+	$pot = intval($params->getParam('pot')[0]->value);
+	$bet = $dbObj->select("SELECT bet FROM player WHERE id='$player_id'")[0]->bet;
+	
+	$date = new DateTime();
+	$lastupdate = $date->format('Y-m-d H:i:s');
+	$id_data = array (":id" => $player->id, ":bet" => ($bet+$raise), ":lastupdate" => $lastupdate);
+	$sqlCommand = "UPDATE player SET bet = :bet WHERE id = :id";
+	$dbObj->executePreparedStatement($sqlCommand, $id_data);
+	
+	$params->setParam("pot",($pot + $raise));
+}
+
 $hand = [];
 $dealercards = [];
 $playerlist = [];
+$pot = 0;
 $deckcounter = 0;
 $playercount = 0;
 $resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0));
@@ -68,6 +85,8 @@ $params ->setParam("dealercards","");
 $params->setParam("stage","0");
 $params->setParam("handbrake","0");
 $params->setParam("abort","0");
+$params->setParam("currentbet","0");
+$params->setParam("pot","0");
 
 $maxlifetime = 15; //max session age, seconds
 
@@ -182,15 +201,15 @@ while(true)
 				}
 				$playercount = intval($dbObj->select("SELECT COUNT(*) AS Num FROM player WHERE sid <> ''")[0]->Num);
 				
-				if ($playercount >= 1)
+				if ($playercount >= 2)
 				{
 					$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
 					foreach ($players as $player)
 					{
-						//substractFunds($player->id,50);
+						$entrance_fee = intval($params->getParam('entrancefee')[0]->value);
 					}
-					
-					$timer = 10;//30;
+										
+					$timer = 8;
 					$nextstage = 1;
 
 					renewLU();
@@ -310,6 +329,7 @@ while(true)
 				$timer = 10;
 				$nextstage = 1;
 				break;
+				
 			case 10: //special quitter stage, gives time for update.php to close client if player.quit set to 1
 				renewLU();
 				$timer = 5;
@@ -325,7 +345,7 @@ while(true)
 				$params ->setParam("dealercards","");
 				$deckcounter = 0;
 				$playercount = 0;
-				$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = ''");
+				$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', bet = 0, data = '".$resetdata."', quit = 0");
 				$sessions = $dbObj->select("SELECT * FROM session");
 				$deck->shuffleDeck(1000);
 				
