@@ -63,7 +63,8 @@ function jsUpdate(event)
 			break;
 		case 3:
 			console.log(event.data);
-			jsInfoUpdate(data.message);
+			jsInfoUpdate(data.message.playerinfo);
+			jsPotInfoUpdate(data.message.potinfo);
 			break;
 	}
 		
@@ -73,6 +74,11 @@ function jsUpdate(event)
 function jsRenewSession()
 {
 	$.post('../modules/renewSession.php');
+}
+
+function jsPotInfoUpdate(message)
+{
+	document.getElementsByClassName('potInfo')[0].innerHTML = 'Pot: '+message.pot+'. Current bet: '+message.currentbet+'.';
 }
 
 function jsInfoUpdate(message)
@@ -249,8 +255,8 @@ function jsAddInfoField(x,y,owner)
 	//field.style.height = '50px';
 	if (owner==0)
 	{
-		field.style.height = '22px';
-		field.style.width = '200px';
+		field.style.height = '28px';
+		field.style.width = '300px';
 	}
 	main_table.appendChild(field);
 }
@@ -328,7 +334,7 @@ function jsInitCards()
 function jsInitPlayerInfo()
 {
 	//dealer
-		jsAddInfoField(380,207,0);
+		jsAddInfoField(330,204,0);
 	//players1
 		jsAddInfoField(30,380,1);
 	//players2
@@ -343,6 +349,7 @@ function jsInitPlayerInfo()
 
 function jsInitSubfields()
 {
+	jsAddInfoSubfield(0, 'potInfo', '18px');
 	//playerid display
 	for (var j=1; j < 7; j+=1)
 	{

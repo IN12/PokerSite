@@ -22,6 +22,7 @@ $params = new Entities();
 $startdate = new DateTime();
 $lastinfoupdate = $startdate->format('Y-m-d H:i:s');
 $lastupdate = 0;//$params->getParam('lastupdate')[0]->value;
+$content = [];
 $type = 2;
 		
 while(true)
@@ -62,8 +63,14 @@ while(true)
 			{
 				array_push($info, array( "id" => $player->id, "funds" => $player->funds, "bet" => $player->bet, "data" => json_decode($player->data), "quit" => $player->quit ));
 			}
+			
+			//also get pot info, likely to change with some player info
+			$pot = intval($params->getParam('pot')[0]->value);
+			$currentbet = intval($params->getParam('currentbet')[0]->value);
 			//$info = count($playerinfo);
-			$message = array( "type" => 3, "message" => $info );
+			
+			$content = array( "playerinfo" => $info, "potinfo" => array( "pot" => $pot, "currentbet" => $currentbet ) );
+			$message = array( "type" => 3, "message" => $content );
 			
 			sendMessage($lastinfoupdate, json_encode($message));
 		}
@@ -113,6 +120,7 @@ while(true)
 					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards));
 					break;
 				case 8:
+					$content = array( "stage" => $stage);
 					break;
 				case 9:
 					$players = $dbObj->select("SELECT id,hand,eval FROM player WHERE sid <> ''");
