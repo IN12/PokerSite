@@ -86,6 +86,13 @@ while(true)
 		sleep(5);
 		sendMessage(time(),"No clients, waiting");
 		$sessions = $dbObj->select("SELECT * FROM session");
+		$abort = intval($params->getParam('abort')[0]->value);
+			
+			if ($abort)
+			{
+				sendMessage(time(),"=abort=");
+				exit();
+			}
 	}
 	
 	if ((time() % 10) % 5 == 0) //cleanup old sessions
@@ -103,14 +110,15 @@ while(true)
 				$date = new DateTime();
 				$lastupdate = $date->format('Y-m-d H:i:s');
 				$fold = json_encode(array( "action" => 2, "confirmed" => 1, "raise" => 0));
-				$sid_data = array (":sid" => $removedsession->sid, ":fold" => $fold,  ":lastupdate" => $lastupdate);
+				$sid_data = array (":sid" => $removedsession->sid);
+				$fold_data = array (":sid" => $removedsession->sid, ":fold" => $fold,  ":lastupdate" => $lastupdate);
 				
 				$sqlCommand = 'DELETE FROM session
 						WHERE sid = :sid';
 				$dbObj->executePreparedStatement($sqlCommand, $sid_data);
 				
 				$sqlCommand = "UPDATE player SET data = :fold, quit = 1, lastupdate = :lastupdate WHERE sid = :sid"; //set leaver to fold and quit if he's a player
-				$dbObj->executePreparedStatement($sqlCommand, $sid_data);
+				$dbObj->executePreparedStatement($sqlCommand, $fold_data);
 			}
 			
 			sendMessage(time(),json_encode($removedsessions)." removing session");
