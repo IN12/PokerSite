@@ -107,7 +107,9 @@ while(true)
 					$content = array( "stage" => $stage, "hand" => json_decode($hand), "owner" => $pid, "players" => $players );
 					break;
 				case 2:
-					$content = array( "stage" => $stage);
+					$rotationid = intval($params->getParam('rotationid')[0]->value);
+					$reactionid = intval($params->getParam('reactionid')[0]->value);
+					$content = array( "stage" => $stage, "rotationid" => $rotationid,"reactionid" => $reactionid );
 					break;
 				case 3:
 				case 5:

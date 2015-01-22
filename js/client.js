@@ -89,11 +89,12 @@ function jsInfoUpdate(message)
 	for (var i = 0; i < len; i+=1)
 	{
 		var id = message[i].id;
+		
 		players[id].playerFunds.innerHTML = 'Funds: ' + (message[i].funds-message[i].bet);
 		if (message[i].bet>=0)
 		{
 			players[id].playerBet.innerHTML = 'Player\'s bet: ' + message[i].bet;
-			if (message[i].confirmed)
+			if (message[i].data.confirmed)
 			{
 				switch(message[i].data.action)
 				{
@@ -110,13 +111,17 @@ function jsInfoUpdate(message)
 			else
 			{
 				players[id].playerAction.innerHTML = '';
+				if (stage==2)
+				{
+					players[id].playerAction.innerHTML = 'Some kind of turn taking is happening';
+				}
 			}
 		}
 		else
 		{
 			players[id].playerBet.innerHTML = 'Player\'s bet: -';
 			players[id].playerAction.innerHTML = 'Folded.';
-			if (message[i].quit)
+			if (parseInt(message[i].quit))
 			{
 				players[id].playerAction.innerHTML = 'Folded and disconnecting.';
 			}
@@ -126,6 +131,7 @@ function jsInfoUpdate(message)
 
 function jsGameUpdate(message)
 {
+	var infotab = document.getElementById('info');
 	stage = message.stage;
 	switch(message.stage)
 	{
@@ -154,10 +160,24 @@ function jsGameUpdate(message)
 			}
 			break;
 		case 2:
+			if (message.reactionid > -1)
+			{
+				infotab.getElementsByTagName('p')[0].innerHTML = 'Player '+message.rotationid+'\s raise.';
+				infotab.getElementsByTagName('p')[1].innerHTML = 'Player '+message.reactionid+'\s reaction.';
+			}
+			else
+			{
+				infotab.getElementsByTagName('p')[0].innerHTML = 'Player '+message.rotationid+'\s turn.';
+				infotab.getElementsByTagName('p')[1].innerHTML = '';
+			}
 			break;
 		case 3:
 		case 5:
 			var len = message.dealercards.length;
+			//tempcleanup
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
+				
 			for (var i=0; i < len; i+=1)
 			{
 				jsSetCard(0,i,message.dealercards[i].frontImage,1);
@@ -190,6 +210,7 @@ function jsGameUpdate(message)
 		default:
 			break;
 	}
+	infotab.getElementsByTagName('p')[3].innerHTML = 'Stage: '+stage;
 }
 
 function jsAction(event)
