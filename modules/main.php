@@ -29,7 +29,7 @@ $dbObj = new Database("pokerdb",'localhost',"root","");
 
 function renewLU()
 {
-	$params = new Entities();
+	global $params;// = new Entities();
 	$date = new DateTime();
 	$fdate = $date->format('Y-m-d H:i:s');
 	$params->setParam("lastupdate",$fdate);
@@ -59,9 +59,11 @@ function subtractFunds($dbObj, $player_id, $sub_funds)
 
 $hand = [];
 $dealercards = [];
+$playerlist = [];
 $deckcounter = 0;
 $playercount = 0;
-$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = ''"); //justincase reset player sids in db
+$resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0));
+$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = '', bet = 0, data = '".$resetdata."', quit = 0"); //justincase reset player sids in db
 $params ->setParam("dealercards","");
 $params->setParam("stage","0");
 $params->setParam("handbrake","0");
@@ -88,8 +90,6 @@ while(true)
 	
 	if ((time() % 10) % 5 == 0) //cleanup old sessions
 	{
-		//for logging purposes
-		//sendMessage(time(),"testing session");
 		$sqlCommand = 'SELECT * FROM session
 						WHERE TIMESTAMPDIFF(second,session.lastupdate,:time) > :seconds';
 		$ddate = new DateTime();
@@ -100,14 +100,16 @@ while(true)
 		{
 			foreach ($removedsessions as $removedsession)//the actual removal
 			{
-				$sid_data = array (":sid" => $removedsession->sid);
+				$date = new DateTime();
+				$lastupdate = $date->format('Y-m-d H:i:s');
+				$fold = json_encode(array( "action" => 2, "confirmed" => 1, "raise" => 0));
+				$sid_data = array (":sid" => $removedsession->sid, ":fold" => $fold,  ":lastupdate" => $lastupdate);
 				
 				$sqlCommand = 'DELETE FROM session
 						WHERE sid = :sid';
 				$dbObj->executePreparedStatement($sqlCommand, $sid_data);
 				
-				$sqlCommand = "UPDATE player SET sid = ''
-						WHERE sid = :sid";
+				$sqlCommand = "UPDATE player SET data = :fold, quit = 1, lastupdate = :lastupdate WHERE sid = :sid"; //set leaver to fold and quit if he's a player
 				$dbObj->executePreparedStatement($sqlCommand, $sid_data);
 			}
 			
@@ -131,11 +133,10 @@ while(true)
 		//json_encode($dealercards)
 		sendMessage(time(),json_encode($dealercards)." <- inserting to DB");
 	}*/
-	
-	if ($timer==0) //game logic block
+	if ($timer==0 || $timer % 5 == 0) //test handbrake more often
 	{
 		$handbrake = intval($params->getParam('handbrake')[0]->value);
-		while ($handbrake)//handbreak
+		while ($handbrake)//handbrake
 		{
 			sleep(15);
 			sendMessage(time(),"Paused.");
@@ -148,11 +149,14 @@ while(true)
 				exit();
 			}
 		}
-
+	}
+	
+	if ($timer==0) //game logic block
+	{
 		if ($nextstage==1)		//stage advance
 		{
 			$nextstage = 0;
-			if ($stage < 10)	{$stage++;}
+			if ($stage < 11)	{$stage++;}
 			else {$stage = 0;}
 			$params->setParam("stage",$stage);
 		}
@@ -172,6 +176,12 @@ while(true)
 				
 				if ($playercount >= 1)
 				{
+					$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
+					foreach ($players as $player)
+					{
+						//substractFunds($player->id,50);
+					}
+					
 					$timer = 10;//30;
 					$nextstage = 1;
 
@@ -184,24 +194,23 @@ while(true)
 				break;
 				
 			case 1: //deal hands
-				$players = $dbObj->select("SELECT * FROM player");
+				$dbObj->executeSqlCommand("UPDATE player SET quit = 0"); //reset quitters
+				
+				$players = $dbObj->select("SELECT sid FROM player WHERE sid <> ''");
 				
 				foreach ($players as $player)
 				{
-					if (!empty($player->sid))
-					{
-						$idx = 51 - $deckcounter;
-						$hand[0] = array("color" => $deck[$idx]->getColor(), "weight" => $deck[$idx]->getWeight(), "frontImage" => $deck[$idx]->getFrontImage());
-						$deckcounter +=1;
-						$idx = 51 - $deckcounter;
-						$hand[1] = array("color" => $deck[$idx]->getColor(), "weight" => $deck[$idx]->getWeight(), "frontImage" => $deck[$idx]->getFrontImage());
-						$deckcounter +=1;
-						
-						$phdata = array(":sid" => $player->sid, ":hand"=>json_encode($hand));
-						$sqlCommand = "UPDATE player SET hand = :hand
-										WHERE sid = :sid";
-						$dbObj->executePreparedStatement($sqlCommand, $phdata);
-					}
+					$idx = 51 - $deckcounter;
+					$hand[0] = array("color" => $deck[$idx]->getColor(), "weight" => $deck[$idx]->getWeight(), "frontImage" => $deck[$idx]->getFrontImage());
+					$deckcounter +=1;
+					$idx = 51 - $deckcounter;
+					$hand[1] = array("color" => $deck[$idx]->getColor(), "weight" => $deck[$idx]->getWeight(), "frontImage" => $deck[$idx]->getFrontImage());
+					$deckcounter +=1;
+					
+					$phdata = array(":sid" => $player->sid, ":hand"=>json_encode($hand));
+					$sqlCommand = "UPDATE player SET hand = :hand
+									WHERE sid = :sid";
+					$dbObj->executePreparedStatement($sqlCommand, $phdata);
 				}
 				
 				renewLU();
@@ -212,12 +221,13 @@ while(true)
 				break;
 				
 			case 2: //preflop rotation
-			/*
-				renewLU();
-			
-				$timer = 10;
-				$stage = 3;
-				$params->setParam("stage",$stage);*/
+				/*$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
+				
+				foreach ($players as $player)
+				{
+					
+				}
+				renewLU();*/
 				$nextstage = 1;
 				break;
 				
@@ -271,6 +281,7 @@ while(true)
 			case 8: //3rd rotation
 				$nextstage = 1;
 				break;
+				
 			case 9://evaluate
 				$players = $dbObj->select("SELECT id,sid,hand FROM player WHERE sid <> ''");
 				$dcards = $params->getParam('dealercards')[0]->value;
@@ -288,10 +299,18 @@ while(true)
 				
 				renewLU();
 				
-				$timer = 15;
+				$timer = 10;
 				$nextstage = 1;
 				break;
-			case 10: //reset
+			case 10: //special quitter stage, gives time for update.php to close client if player.quit set to 1
+				renewLU();
+				$timer = 5;
+				$nextstage = 1;
+				break;
+				
+			case 11: //reset
+				//make certain that quitter sessions are removed at this point
+				$dbObj->executeSqlCommand("DELETE FROM session WHERE session.sid IN (SELECT sid FROM `player` WHERE quit = 1)");
 				//reset all the things
 				$hand = [];
 				$dealercards = [];
@@ -301,6 +320,7 @@ while(true)
 				$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = ''");
 				$sessions = $dbObj->select("SELECT * FROM session");
 				$deck->shuffleDeck(1000);
+				
 				$nextstage = 1;
 				break;
 		}

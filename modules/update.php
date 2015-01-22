@@ -20,6 +20,7 @@ $dbObj = new Database("pokerdb",'localhost',"root","");
 $params = new Entities();
 
 $lastupdate = 0;//$params->getParam('lastupdate')[0]->value;
+$type = 2;
 		
 while(true)
 {
@@ -48,7 +49,7 @@ while(true)
 	
 	if ($thisupdate > $lastupdate)
 	{
-		if (!empty($dbObj->parameterizedSelect($sqlCommand, $pdata)))
+		if (!empty($dbObj->parameterizedSelect($sqlCommand, $pdata)[0]->id))
 		{
 			$lastupdate = $thisupdate;
 			$stage = intval($params->getParam('stage')[0]->value);
@@ -56,14 +57,13 @@ while(true)
 			switch($stage)
 			{
 				case 0:
-					$content = '';
+					$content = array( "stage" => $stage);
 					break;
 				case 1:
 					$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
-					$hdata = array (":sid" => $session_id);
 
 					$sqlCommand = "SELECT id, hand FROM player WHERE sid = :sid";
-					$hand = $dbObj->parameterizedSelect($sqlCommand, $hdata);
+					$hand = $dbObj->parameterizedSelect($sqlCommand, $pdata);
 					if (!empty($hand))
 					$pid = intval($hand[0]->id);
 					$hand = $hand[0]->hand;
@@ -102,14 +102,29 @@ while(true)
 					
 					$content = array( "stage" => $stage, "results" => $results,  "hands" => $hands);
 					break;
-				case 10:
-					$content = '';
+				case 10: //check for quitting
+					$sqlCommand = "SELECT quit FROM player WHERE sid = :sid";
+					$quit = intval($dbObj->parameterizedSelect($sqlCommand, $pdata)[0]->quit);
+					if ($quit)
+					{
+						$type = -1;
+					}
+					$content = array( "stage" => $stage);
+					break;
+				case 11:
+					$content = array( "stage" => $stage);
 					break;
 			}
 			
 			
-			$message = array( "type" => 2, "message" => $content );
+			$message = array( "type" => $type, "message" => $content );
 			sendMessage($lastupdate, json_encode($message));
+			if ($type==-1)
+			{
+				sleep(10); //give a gratuitous window for client.js to react
+				exit(); //and then quit
+			}
+			$type = 2;
 		}
 	}
 	

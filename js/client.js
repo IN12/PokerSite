@@ -26,6 +26,10 @@ function jsUpdate(event)
 	/*handle messages and their types*/
 	switch(data.type)
 	{
+		case -1: //quit
+			updater.close();
+			document.getElementById('info').innerHTML="GAME QUIT.<br>Refresh to rejoin.";
+			break;
 		case 0: //message
 			/*document.getElementById('test2').innerHTML=event.lastEventId;
 			document.getElementById('test2').innerHTML+='<br>';
