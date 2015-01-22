@@ -29,10 +29,18 @@ $dbObj = new Database("pokerdb",'localhost',"root","");
 
 function renewLU()
 {
-	global $params;// = new Entities();
+	global $params;
 	$date = new DateTime();
 	$fdate = $date->format('Y-m-d H:i:s');
 	$params->setParam("lastupdate",$fdate);
+}
+
+function renewPLU()
+{
+	global $dbObj;
+	$date = new DateTime();
+	$fdate = $date->format('Y-m-d H:i:s');
+	$dbObj->executeSqlCommand("UPDATE player SET lastupdate='$fdate'");
 }
 
 function mergeCards($d_cards,$p_cards)
@@ -59,17 +67,32 @@ function subtractFunds($player_id, $sub_funds)
 	}
 }
 
+function addFunds($player_id, $add_funds)
+{
+	global $dbObj;
+	$playerFunds = $dbObj->select("SELECT funds FROM player WHERE id='$player_id'")[0]->funds;
+	$newFunds = $playerFunds + $add_funds;
+	$dbObj->executeSqlCommand("UPDATE player SET funds='$newFunds' WHERE id='$player_id'");
+}
+
 function raiseBet($player_id, $raise)
 {
+	global $params, $dbObj;
 	$pot = intval($params->getParam('pot')[0]->value);
 	$bet = $dbObj->select("SELECT bet FROM player WHERE id='$player_id'")[0]->bet;
+	$currentbet = intval($params->getParam('currentbet')[0]->value);
+	$newbet = $bet+$raise;
 	
 	$date = new DateTime();
 	$lastupdate = $date->format('Y-m-d H:i:s');
-	$id_data = array (":id" => $player->id, ":bet" => ($bet+$raise), ":lastupdate" => $lastupdate);
-	$sqlCommand = "UPDATE player SET bet = :bet WHERE id = :id";
+	$id_data = array (":id" => $player_id, ":bet" => ($newbet), ":lastupdate" => $lastupdate);
+	$sqlCommand = "UPDATE player SET bet = :bet, lastupdate = :lastupdate WHERE id = :id";
 	$dbObj->executePreparedStatement($sqlCommand, $id_data);
 	
+	if ($currentbet < ($newbet))
+	{
+		$params->setParam("currentbet",($newbet));
+	}
 	$params->setParam("pot",($pot + $raise));
 }
 
@@ -79,6 +102,7 @@ $playerlist = [];
 $pot = 0;
 $deckcounter = 0;
 $playercount = 0;
+$winners[0] = array( "id" => 0, "score" => 0 );
 $resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0));
 $dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = '', bet = 0, data = '".$resetdata."', quit = 0"); //justincase reset player sids in db
 $params ->setParam("dealercards","");
@@ -87,6 +111,7 @@ $params->setParam("handbrake","0");
 $params->setParam("abort","0");
 $params->setParam("currentbet","0");
 $params->setParam("pot","0");
+$params->setParam("winners",json_encode($winners));
 
 $maxlifetime = 15; //max session age, seconds
 
@@ -145,21 +170,6 @@ while(true)
 		}
 	}
 	
-	/*if ((time() % 60) % 30 == 0)
-	{
-		for ($i = 0; $i < 5; $i++)
-		{
-			$dealercards[$i]=array("color" => $deck[$i]->getColor(), "weight" => $deck[$i]->getWeight(), "frontImage" => $deck[$i]->getFrontImage());
-		}
-		$deck->shuffleDeck(1000);
-		$date = new DateTime();
-		$fdate = $date->format('Y-m-d H:i:s');
-		$params->setParam("lastupdate",$fdate);
-		$params->setParam("dealercards",json_encode($dealercards));
-
-		//json_encode($dealercards)
-		sendMessage(time(),json_encode($dealercards)." <- inserting to DB");
-	}*/
 	if ($timer==0 || $timer % 5 == 0) //test handbrake more often
 	{
 		$handbrake = intval($params->getParam('handbrake')[0]->value);
@@ -207,6 +217,7 @@ while(true)
 					foreach ($players as $player)
 					{
 						$entrance_fee = intval($params->getParam('entrancefee')[0]->value);
+						raiseBet($player->id, $entrance_fee);
 					}
 										
 					$timer = 8;
@@ -221,6 +232,7 @@ while(true)
 				break;
 				
 			case 1: //deal hands
+				renewPLU();
 				$dbObj->executeSqlCommand("UPDATE player SET quit = 0"); //reset quitters
 				
 				$players = $dbObj->select("SELECT sid FROM player WHERE sid <> ''");
@@ -310,8 +322,9 @@ while(true)
 				break;
 				
 			case 9://evaluate
-				$players = $dbObj->select("SELECT id,sid,hand FROM player WHERE sid <> ''");
+				$players = $dbObj->select("SELECT id,sid,hand,bet FROM player WHERE sid <> ''");
 				$dcards = $params->getParam('dealercards')[0]->value;
+				$score = 0.0;
 				
 				foreach ($players as $player)
 				{
@@ -322,6 +335,33 @@ while(true)
 					$edata = array(":sid" => $player->sid, ":eval"=>json_encode(Array("score" => $handresult->Score, "note" => $handresult->Note)));
 					$sqlCommand = "UPDATE player SET eval = :eval WHERE sid = :sid";
 					$dbObj->executePreparedStatement($sqlCommand, $edata);
+					
+					$resultscore = (float)$handresult->Score;
+					
+					if ($player->bet>0) //-1 bets indicate folded players
+					{
+						//create an array of winner id and score
+						if ($resultscore == $winners[0]['score'])
+						{
+							array_push($winners, array( "id" => $player->id, "score" => (float)$handresult->Score ));
+						}
+						if ($resultscore > $winners[0]['score'])
+						{
+							$winners = [];
+							$winners[0] = array( "id" => $player->id, "score" => (float)$handresult->Score );
+						}
+						
+						subtractFunds($player->id, $player->bet); //also subtract the actual funds and reset bets
+						$dbObj->executeSqlCommand("UPDATE player SET bet=0 WHERE id=".$player->id);
+					}
+				}
+				$params->setParam("winners",json_encode($winners));
+				
+				$pot = intval($params->getParam('pot')[0]->value);
+				foreach ($winners as $winner)
+				{
+					$split = count($winners);
+					addFunds($winner['id'],$pot/$split); 
 				}
 				
 				renewLU();
@@ -343,8 +383,11 @@ while(true)
 				$hand = [];
 				$dealercards = [];
 				$params ->setParam("dealercards","");
+				$params ->setParam("pot","0");
+				$params ->setParam("currentbet","0");
 				$deckcounter = 0;
 				$playercount = 0;
+				$winners[0] = array( "id" => 0, "score" => 0 );
 				$dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', bet = 0, data = '".$resetdata."', quit = 0");
 				$sessions = $dbObj->select("SELECT * FROM session");
 				$deck->shuffleDeck(1000);

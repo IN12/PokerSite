@@ -2,6 +2,8 @@ var updater;
 var cards = [];
 var players = [];
 var main_table;
+var stage = 0;
+//var timer = 0;
 
 function jsInit()
 {
@@ -87,24 +89,44 @@ function jsInfoUpdate(message)
 	for (var i = 0; i < len; i+=1)
 	{
 		var id = message[i].id;
-		players[id].playerFunds.innerHTML = 'Funds: ' + message[i].funds;
-		players[id].playerBet.innerHTML = 'Player\'s bet: ' + message[i].bet;
-		switch(message[i].data.action)
+		players[id].playerFunds.innerHTML = 'Funds: ' + (message[i].funds-message[i].bet);
+		if (message[i].bet>=0)
 		{
-			case 0:
-				players[id].playerAction.innerHTML = 'Planning to call...';
-				break;
-			case 1:
-				players[id].playerAction.innerHTML = 'Planning to raise by '+message[i].data.raise;
-				break;
-			case 2:
-				players[id].playerAction.innerHTML = 'Planning to fold.';
+			players[id].playerBet.innerHTML = 'Player\'s bet: ' + message[i].bet;
+			if (message[i].confirmed)
+			{
+				switch(message[i].data.action)
+				{
+					case 0:
+						players[id].playerAction.innerHTML = 'Planning to call...';
+						break;
+					case 1:
+						players[id].playerAction.innerHTML = 'Planning to raise by '+message[i].data.raise;
+						break;
+					case 2:
+						players[id].playerAction.innerHTML = 'Planning to fold.';
+				}
+			}
+			else
+			{
+				players[id].playerAction.innerHTML = '';
+			}
+		}
+		else
+		{
+			players[id].playerBet.innerHTML = 'Player\'s bet: -';
+			players[id].playerAction.innerHTML = 'Folded.';
+			if (message[i].quit)
+			{
+				players[id].playerAction.innerHTML = 'Folded and disconnecting.';
+			}
 		}
 	}
 }
 
 function jsGameUpdate(message)
 {
+	stage = message.stage;
 	switch(message.stage)
 	{
 		case 0:
@@ -256,7 +278,7 @@ function jsAddInfoField(x,y,owner)
 	if (owner==0)
 	{
 		field.style.height = '28px';
-		field.style.width = '300px';
+		field.style.width = '280px';
 	}
 	main_table.appendChild(field);
 }
@@ -334,7 +356,7 @@ function jsInitCards()
 function jsInitPlayerInfo()
 {
 	//dealer
-		jsAddInfoField(330,204,0);
+		jsAddInfoField(340,204,0);
 	//players1
 		jsAddInfoField(30,380,1);
 	//players2
