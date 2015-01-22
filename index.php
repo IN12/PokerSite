@@ -66,6 +66,10 @@ $dbObj->executePreparedStatement($sqlCommand, $data);
 			</div>
 			<div class="col">
 				<div id="info">
+				<p></p>
+				<p></p>
+				<p></p>
+				<p></p>
 				</div>
 			</div>
 		</div>
