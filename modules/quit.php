@@ -8,6 +8,10 @@ $dbObj = new Database("pokerdb",'localhost',"root","");
 
 $session = array (":sid" => $session_id);
 $sqlCommand = "SELECT quit FROM player WHERE sid = :sid";
+if (empty($dbObj->parameterizedSelect($sqlCommand, $session)))
+{
+	exit();
+}
 $quit = intval($dbObj->parameterizedSelect($sqlCommand, $session)[0]->quit);
 
 if ($quit)

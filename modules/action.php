@@ -13,6 +13,14 @@ include "../modules/dbaccess.php";
 $dbObj = new Database("pokerdb",'localhost',"root","");
 $params = new Entities();
 
+$session = array (":sid" => $session_id);
+$sqlCommand = "SELECT quit FROM player WHERE sid = :sid";
+if (empty($dbObj->parameterizedSelect($sqlCommand, $session)))
+{
+	echo "Not yet playing.";
+	exit();
+}
+
 $date = new DateTime();
 $lastupdate = $date->format('Y-m-d H:i:s');
 $data = array( "action" => $action, "confirmed" => 1, "raise" => $raise);
