@@ -24,7 +24,18 @@ $lastinfoupdate = $startdate->format('Y-m-d H:i:s');
 $lastupdate = 0;//$params->getParam('lastupdate')[0]->value;
 $content = [];
 $type = 2;
-		
+
+//First run
+$stage = intval($params->getParam('stage')[0]->value);
+$ldate = $params->getParam('lastupdate')[0]->value;
+
+if($stage > 0){
+	$dealercards = $params->getParam('dealercards')[0]->value;
+	$content = array( "stage" => 5, "dealercards" => json_decode($dealercards) );
+	$message = array( "type" => 4, "message" => $content );	//just run update stage
+	sendMessage($ldate, json_encode($message));
+}
+
 while(true)
 {
     //if script's session not in db then kill script

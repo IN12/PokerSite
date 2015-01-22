@@ -68,6 +68,9 @@ function jsUpdate(event)
 			jsInfoUpdate(data.message.playerinfo);
 			jsPotInfoUpdate(data.message.potinfo);
 			break;
+		case 4:
+			jsGameUpdate(data.message);
+			break;
 	}
 		
 	//document.getElementById('table').innerHTML=event.data;
