@@ -39,6 +39,7 @@ $dbObj->executePreparedStatement($sqlCommand, $data);
 <link rel="stylesheet" type="text/css" href="css/global.css">
 <title>Our title here</title>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="js/sounds.js"></script>
 <script type="text/javascript" src="js/client.js"></script>
 </head>
 <body  onLoad="jsInit()">

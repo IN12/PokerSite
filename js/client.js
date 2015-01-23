@@ -3,6 +3,8 @@ var cards = [];
 var players = [];
 var main_table;
 var stage = 0;
+var thisplayerid = 0;
+var lastturn = 0;
 //var timer = 0;
 
 function jsInit()
@@ -65,11 +67,35 @@ function jsUpdate(event)
 			break;
 		case 3:
 			console.log(event.data);
-			jsInfoUpdate(data.message.playerinfo);
+			jsInfoUpdate(data.message.playerinfo,data.message.turninfo);
 			jsPotInfoUpdate(data.message.potinfo);
 			break;
 		case 4:
-			jsGameUpdate(data.message);
+			if (data.message.stage === 3);
+			{
+				jsGameUpdate(data.message);
+			}
+
+			var playercount = data.message.players.length;
+			for (var i=0; i < playercount; i+=1)
+			{
+				var id = parseInt(data.message.players[i].id)
+				jsSetCard(id,0,'back.png',1);
+				jsSetCard(id,1,'back.png',1);
+			}
+			
+			if (data.message.stage === 2)
+			{
+				var owner = data.message.owner;
+				thisplayerid = owner;
+				players[owner].playerId.style.color="#059905";
+				jsSetCard(owner,0,data.message.hand[0].frontImage,1);
+				jsSetCard(owner,1,data.message.hand[1].frontImage,1);
+			}
+			console.log(event.data);
+			break;
+		case 5:
+			thisplayerid = data.message.pid;
 			break;
 	}
 		
@@ -86,13 +112,12 @@ function jsPotInfoUpdate(message)
 	document.getElementsByClassName('potInfo')[0].innerHTML = 'Pot: '+message.pot+'. Current bet: '+message.currentbet+'.';
 }
 
-function jsInfoUpdate(message)
+function jsInfoUpdate(message,turns)
 {
 	var len = message.length;
 	for (var i = 0; i < len; i+=1)
 	{
 		var id = message[i].id;
-		
 		players[id].playerFunds.innerHTML = 'Funds: ' + (message[i].funds-message[i].bet);
 		if (message[i].bet>=0)
 		{
@@ -113,10 +138,49 @@ function jsInfoUpdate(message)
 			}
 			else
 			{
+				if (id == thisplayerid)
+				{
+					document.getElementById('status').innerHTML = '';
+				}
 				players[id].playerAction.innerHTML = '';
-				if (stage==2)
+				if (stage % 2 == 0 && stage < 10)
 				{
 					players[id].playerAction.innerHTML = 'Some kind of turn taking';
+					
+					/*if (turns.reactionid < 0)
+					{
+						if (turns.rotationid >= id)
+						{
+							switch(message[i].data.action)
+							{
+								case 0:
+									players[id].playerAction.innerHTML = 'Called.';
+									break;
+								case 1:
+									players[id].playerAction.innerHTML = 'Raised by '+message[i].data.raise;
+									break;
+							}
+						}
+					}
+					else
+					{
+						if (turns.reactionid >= id)
+						{
+							players[id].playerAction.innerHTML = 'Called.';
+						}
+					}*/
+					if (message[i].data.laststage==stage)
+					{
+						switch(message[i].data.action)
+						{
+							case 0:
+								players[id].playerAction.innerHTML = 'Called.';
+								break;
+							case 1:
+								players[id].playerAction.innerHTML = 'Raised by '+message[i].data.raise;
+								break;
+						}
+					}
 				}
 			}
 		}
@@ -143,6 +207,8 @@ function jsGameUpdate(message)
 			//tempcleanup
 			infotab.getElementsByTagName('p')[0].innerHTML = '';
 			infotab.getElementsByTagName('p')[1].innerHTML = '';
+			infotab.getElementsByTagName('p')[2].innerHTML = '';
+			play('shuffle');
 			break;
 		case 1:
 			//tempcleanup
@@ -153,9 +219,11 @@ function jsGameUpdate(message)
 			
 			//draw player cards
 			var owner = message.owner;
+			thisplayerid = owner;
 			players[owner].playerId.style.color="#059905";
 			jsSetCard(owner,0,message.hand[0].frontImage,1);
 			jsSetCard(owner,1,message.hand[1].frontImage,1);
+			play('card');
 			
 			//draw the other player cards
 			var playercount = message.players.length;
@@ -195,6 +263,7 @@ function jsGameUpdate(message)
 			{
 				jsSetCard(0,i,message.dealercards[i].frontImage,1);
 			}
+			play('card');
 			break;
 		case 7:
 			//tempcleanup
@@ -205,6 +274,7 @@ function jsGameUpdate(message)
 			{
 				jsSetCard(0,i,message.dealercards[i].frontImage,1);
 			}
+			play('card');
 			break;
 		/*case 8:
 			break;*/
@@ -219,14 +289,33 @@ function jsGameUpdate(message)
 				jsSetCard(message.hands[i].id,0,message.hands[i].hand[0].frontImage,1);
 				jsSetCard(message.hands[i].id,1,message.hands[i].hand[1].frontImage,1);
 			}
+			play('card');
 			//display results
 			var resultcount = message.results.length;
 			for (var i=0; i < resultcount; i+=1)
 			{
 				players[message.results[i].id].playerHand.innerHTML=/*message.results[i].eval.score+'<br>'+*/message.results[i].eval.note;
 			}
+			
+			if (message.winners.length>1)
+			{
+				infotab.getElementsByTagName('p')[2].innerHTML = 'Winning players: '+message.winners[0].id;
+				players[message.winners[0].id].style.backgroundColor = '#FFD700';
+				for (var i=1; i < message.winners.length; i+=1)
+				{
+					infotab.getElementsByTagName('p')[2].innerHTML += ', '+message.winners[i].id;
+					players[message.winners[i].id].style.backgroundColor = '#FFD700';
+				}
+			}
+			else
+			{
+				infotab.getElementsByTagName('p')[2].innerHTML = 'Winner: Player '+message.winners[0].id;
+				players[message.winners[0].id].style.backgroundColor = '#FFD700';
+			}
 			break;
 		default:
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
 			break;
 	}
 	infotab.getElementsByTagName('p')[3].innerHTML = 'Stage: '+stage;
@@ -359,6 +448,7 @@ function jsHideAllCards()
 	//also reset other things
 	for (var j=1; j < 7; j+=1)
 	{
+		players[j].style.backgroundColor = '';
 		players[j].playerId.style.color=""; //playerid colors
 		players[j].playerAction.innerHTML=""; //playeraction results
 		players[j].playerHand.innerHTML=""; //playerhand results

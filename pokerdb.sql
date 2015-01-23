@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 23, 2015 at 01:14 AM
+-- Generation Time: Jan 23, 2015 at 06:56 AM
 -- Server version: 5.6.16
 -- PHP Version: 5.5.11
 
@@ -37,19 +37,19 @@ CREATE TABLE IF NOT EXISTS `param` (
 --
 
 INSERT INTO `param` (`name`, `value`) VALUES
-('abort', '0'),
-('currentbet', '50'),
-('dealercards', '[{"color":2,"weight":9,"frontImage":"9_of_hearts.png"},{"color":2,"weight":4,"frontImage":"4_of_hearts.png"},{"color":1,"weight":8,"frontImage":"8_of_diamonds.png"},{"color":3,"weight":7,"frontImage":"7_of_spades.png"},{"color":0,"weight":14,"frontImage":"ace_of_clubs.png"}]'),
+('abort', '1'),
+('currentbet', '0'),
+('dealercards', ''),
 ('entrancefee', '50'),
-('handbrake', '0'),
-('lastupdate', '2015-01-23 01:14:12'),
+('handbrake', '1'),
+('lastupdate', '2015-01-23 06:48:43'),
 ('message', ''),
 ('playercount', '0'),
-('pot', '100'),
+('pot', '0'),
 ('reactionid', '-1'),
-('rotationid', '1'),
-('stage', '8'),
-('winners', '[{"id":"1","score":4.12}]');
+('rotationid', '0'),
+('stage', '0'),
+('winners', '[{"id":0,"score":0}]');
 
 -- --------------------------------------------------------
 
@@ -76,12 +76,12 @@ CREATE TABLE IF NOT EXISTS `player` (
 --
 
 INSERT INTO `player` (`id`, `sid`, `hand`, `eval`, `funds`, `bet`, `data`, `quit`, `lastupdate`, `user_id`) VALUES
-(1, '78luu5bq4e1q140lprbae7vdk1', '[{"color":2,"weight":13,"frontImage":"king_of_hearts.png"},{"color":0,"weight":7,"frontImage":"7_of_clubs.png"}]', '{"score":"4.12","note":"Straight - Queens high"}', 3190, 50, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0),
-(2, 'lkef5b8qsbjp344rvhu7j68h70', '[{"color":2,"weight":8,"frontImage":"8_of_hearts.png"},{"color":2,"weight":7,"frontImage":"7_of_hearts.png"}]', '{"score":"2.110912","note":"Two Pairs - Jacks and Nines"}', 4549, 50, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0),
-(3, '', '', '', 6584, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0),
-(4, '', '', '', 11332, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0),
-(5, '', '', '', 4245, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0),
-(6, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0}', 0, '2015-01-23 01:14:12', 0);
+(1, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:55:25', 0),
+(2, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:48:45', 0),
+(3, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:48:20', 0),
+(4, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:48:20', 0),
+(5, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:48:20', 0),
+(6, '', '', '', 5000, 0, '{"action":0,"confirmed":0,"raise":0,"laststage":0}', 0, '2015-01-23 06:48:20', 0);
 
 -- --------------------------------------------------------
 
@@ -95,14 +95,6 @@ CREATE TABLE IF NOT EXISTS `session` (
   `ip` varchar(32) NOT NULL,
   PRIMARY KEY (`sid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
---
--- Dumping data for table `session`
---
-
-INSERT INTO `session` (`sid`, `lastupdate`, `ip`) VALUES
-('78luu5bq4e1q140lprbae7vdk1', '2015-01-23 01:14:14', '77.79.28.106'),
-('lkef5b8qsbjp344rvhu7j68h70', '2015-01-23 01:14:14', '95.92.219.38');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

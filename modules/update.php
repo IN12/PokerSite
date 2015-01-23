@@ -29,10 +29,47 @@ $type = 2;
 $stage = intval($params->getParam('stage')[0]->value);
 $ldate = $params->getParam('lastupdate')[0]->value;
 
+$pdata = array (":sid" => $session_id);
+$sqlCommand = "SELECT id FROM player WHERE sid = :sid";
+$pid = $dbObj->parameterizedSelect($sqlCommand, $pdata);
+
+//init
+if (!empty($pid))
+{
+	$content = array( "pid" => intval($pid[0]->id));
+}
+else
+{
+	$content = array( "pid" => 0);
+}
+$message = array( "type" => 5, "message" => $content );
+sendMessage($ldate, json_encode($message));
+
+$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
+
 if($stage >= 3){
 	$dealercards = $params->getParam('dealercards')[0]->value;
-	$content = array( "stage" => 5, "dealercards" => json_decode($dealercards) );
+
+	$content = array( "stage" => 5, "dealercards" => json_decode($dealercards), "players" => $players  );
 	$message = array( "type" => 4, "message" => $content );	//just run update stage
+	sendMessage($ldate, json_encode($message));
+}
+if($stage < 3 && $stage > 0)
+{
+	
+	$content = array( "stage" => -1, "players" => $players  );
+	$message = array( "type" => 4, "message" => $content );	//give cards back-up
+	sendMessage($ldate, json_encode($message));
+}
+
+if (!empty($pid))
+{
+	$sqlCommand = "SELECT id, hand FROM player WHERE sid = :sid";
+	$hand = $dbObj->parameterizedSelect($sqlCommand, $pdata);
+	$pid = intval($hand[0]->id);
+	$hand = $hand[0]->hand;
+	$content = array( "stage" => 2, "hand" => json_decode($hand), "owner" => $pid, "players" => $players );
+	$message = array( "type" => 4, "message" => $content );
 	sendMessage($ldate, json_encode($message));
 }
 
@@ -79,8 +116,9 @@ while(true)
 			$pot = intval($params->getParam('pot')[0]->value);
 			$currentbet = intval($params->getParam('currentbet')[0]->value);
 			//$info = count($playerinfo);
-			
-			$content = array( "playerinfo" => $info, "potinfo" => array( "pot" => $pot, "currentbet" => $currentbet ) );
+			$rotationid = intval($params->getParam('rotationid')[0]->value);
+			$reactionid = intval($params->getParam('reactionid')[0]->value);
+			$content = array( "playerinfo" => $info, "potinfo" => array( "pot" => $pot, "currentbet" => $currentbet ), "turninfo" => array( "rotationid" => $rotationid, "reactionid" => $reactionid ) );
 			$message = array( "type" => 3, "message" => $content );
 			
 			sendMessage($lastinfoupdate, json_encode($message));
@@ -154,7 +192,7 @@ while(true)
 						array_push($results, array( "id" => intval($result->id), "eval" => json_decode($result->eval)));
 					}
 					
-					$content = array( "stage" => $stage, "results" => $results,  "hands" => $hands);
+					$content = array( "stage" => $stage, "results" => $results,  "hands" => $hands, "winners" => json_decode($params->getParam('winners')[0]->value) );
 					break;
 				case 10: //check for quitting
 					$sqlCommand = "SELECT quit FROM player WHERE sid = :sid";

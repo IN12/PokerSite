@@ -52,7 +52,7 @@ function mergeCards($d_cards,$p_cards)
 
 function handleAction($action, $player)
 {
-	global $reactioncounter, $resetdata;
+	global $reactioncounter, $resetdata, $stage;
 	global $dbObj, $params;
 	$data=json_decode($player->data);
 	switch($action)
@@ -81,12 +81,16 @@ function handleAction($action, $player)
 				$dbObj->executeSqlCommand("UPDATE player SET bet = -1 WHERE id = ".$player->id); //fold
 				break;
 		}
-	$dbObj->executeSqlCommand("UPDATE player SET data = '".$resetdata."' WHERE id = ".$player->id);
+	$confirmdata = json_decode($dbObj->select("SELECT data FROM player WHERE id=".$player->id)[0]->data);
+	$confirmdata->confirmed = 0;
+	$confirmdata->laststage = $stage;
+	$dbObj->executeSqlCommand("UPDATE player SET data = '".json_encode($confirmdata)."' WHERE id = ".$player->id);	
+	//$dbObj->executeSqlCommand("UPDATE player SET data = '".$resetdata."' WHERE id = ".$player->id);
 }
 
 function handleReaction($action, $player)
 {
-	global $reactioncounter, $resetdata;
+	global $reactioncounter, $resetdata, $stage;
 	global $dbObj, $params;
 	$data=json_decode($player->data);
 	switch($action)
@@ -104,7 +108,10 @@ function handleReaction($action, $player)
 				$dbObj->executeSqlCommand("UPDATE player SET bet = -1 WHERE id = ".$player->id); //fold
 				break;
 		}
-	$dbObj->executeSqlCommand("UPDATE player SET data = '".$resetdata."' WHERE id = ".$player->id);
+	$confirmdata = json_decode($dbObj->select("SELECT data FROM player WHERE id=".$player->id)[0]->data);
+	$confirmdata->confirmed = 0;
+	$confirmdata->laststage = $stage;
+	$dbObj->executeSqlCommand("UPDATE player SET data = '".json_encode($confirmdata)."' WHERE id = ".$player->id);
 }
 
 function subtractFunds($player_id, $sub_funds)
@@ -156,12 +163,23 @@ function raiseBet($player_id, $raise)
 function handleBetting()
 {
 	global $params, $dbObj;
-	global $nextstage, $timer, $turntimer;
+	global $nextstage, $timer, $turntimer, $stage;
 	global $reactioncounter, $rotationcounter;
 
 	$players = $dbObj->select("SELECT id,bet,data FROM player WHERE sid <> '' AND bet <> -1 ORDER BY id ASC");
 	$pcount = count($players);
-	if ($pcount<=1) {$nextstage = 1; return;} //not enough players to do any turns
+	if ($pcount<=1)
+	{
+		if ($stage<8)
+		{
+			$stage = 8;  //skip to stage 9 and give away pot there
+		}
+		else
+		{
+			$nextstage=1;
+		}
+		return;
+	} //not enough players to do any turns
 	
 	if ($reactioncounter < 0) //proceed with normal rotation
 	{
@@ -179,7 +197,23 @@ function handleBetting()
 			if ($data->confirmed==1)
 			{
 				$turntimer = 0; //reset turn timer
-				handleAction($data->action, $players[$i]); //and continue													
+				handleAction($data->action, $players[$i]); //and continue	
+				
+				//check for last-standing after possible folders again
+				$test_count = intval($dbObj->select("SELECT COUNT(*) AS Num FROM player WHERE sid <> '' AND bet <> -1")[0]->Num);
+				/*if ($test_count<=1)
+				{
+					if ($stage<8)
+					{
+						$stage = 9;  //skip to stage 9 and give away pot there
+					}
+					else
+					{
+						$nextstage=1;
+					}
+					return;
+				} //not enough players to do any turns*/
+				
 				if ($reactioncounter>=0) //reactions triggered
 				{
 					//advance counter
@@ -203,7 +237,24 @@ function handleBetting()
 				{
 					$timer = 0;
 					$turntimer = 0;
-					handleAction($data->action, $players[$i]);							
+					handleAction($data->action, $players[$i]);	
+					
+					//check for last-standing after possible folders again
+					$test_count = intval($dbObj->select("SELECT COUNT(*) AS Num FROM player WHERE sid <> '' AND bet <> -1")[0]->Num);
+					/*if ($test_count<=1)
+					{
+						if ($stage<8)
+						{
+							$stage = 9;  //skip to stage 9 and give away pot there
+						}
+						else
+						{
+							$nextstage=1;
+						}
+						$stage = 9;  //skip to stage 9 and give away pot there
+						return;
+					} //not enough players to do any turns*/
+					
 					if ($reactioncounter>=0) //reactions triggered
 					{
 						//advance counter
@@ -297,7 +348,7 @@ $pot = 0;
 $deckcounter = 0;
 $playercount = 0;
 $winners[0] = array( "id" => 0, "score" => 0 );
-$resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0));
+$resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0, "laststage" => 0 ));
 $dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = '', bet = 0, data = '".$resetdata."', quit = 0"); //justincase reset player sids in db
 $params ->setParam("dealercards","");
 $params->setParam("stage","0");
@@ -429,12 +480,13 @@ while(true)
 				}
 				else
 				{
+					sendMessage(time(),"Not enough players, waiting");
 					$timer = 8;
 				}
 				break;
 				
 			case 1: //deal hands
-				renewPLU();
+				
 				$dbObj->executeSqlCommand("UPDATE player SET quit = 0"); //reset quitters
 				
 				$players = $dbObj->select("SELECT sid FROM player WHERE sid <> ''");
@@ -454,6 +506,7 @@ while(true)
 					$dbObj->executePreparedStatement($sqlCommand, $phdata);
 				}
 				
+				renewPLU();
 				renewLU();
 				
 				$timer = 5;//10;
@@ -530,38 +583,47 @@ while(true)
 				
 			case 9://evaluate
 				$players = $dbObj->select("SELECT id,sid,hand,bet FROM player WHERE sid <> ''");
+				$active_player_count = intval($dbObj->select("SELECT COUNT(*) AS Num FROM player WHERE sid <> '' AND bet <> -1")[0]->Num);
 				$dcards = $params->getParam('dealercards')[0]->value;
 				$score = 0.0;
 				
-				foreach ($players as $player)
+				if ($active_player_count > 1)
 				{
-					$pcards = $player->hand;
-					$ecards = mergeCards(json_decode($dcards),json_decode($pcards));
-					$handresult = new HandEvaluation(CardDeck::parseHandJSON($ecards));
-					
-					$edata = array(":sid" => $player->sid, ":eval"=>json_encode(Array("score" => $handresult->Score, "note" => $handresult->Note)));
-					$sqlCommand = "UPDATE player SET eval = :eval WHERE sid = :sid";
-					$dbObj->executePreparedStatement($sqlCommand, $edata);
-					
-					$resultscore = (float)$handresult->Score;
-					
-					if ($player->bet>0) //-1 bets indicate folded players
+					foreach ($players as $player)
 					{
-						//create an array of winner id and score
-						if ($resultscore == $winners[0]['score'])
-						{
-							array_push($winners, array( "id" => $player->id, "score" => (float)$handresult->Score ));
-						}
-						if ($resultscore > $winners[0]['score'])
-						{
-							$winners = [];
-							$winners[0] = array( "id" => $player->id, "score" => (float)$handresult->Score );
-						}
+						$pcards = $player->hand;
+						$ecards = mergeCards(json_decode($dcards),json_decode($pcards));
+						$handresult = new HandEvaluation(CardDeck::parseHandJSON($ecards));
 						
-						subtractFunds($player->id, $player->bet); //also subtract the actual funds and reset bets
-						$dbObj->executeSqlCommand("UPDATE player SET bet=0 WHERE id=".$player->id);
+						$edata = array(":sid" => $player->sid, ":eval"=>json_encode(Array("score" => $handresult->Score, "note" => $handresult->Note)));
+						$sqlCommand = "UPDATE player SET eval = :eval WHERE sid = :sid";
+						$dbObj->executePreparedStatement($sqlCommand, $edata);
+						
+						$resultscore = (float)$handresult->Score;
+						
+						if ($player->bet>0) //-1 bets indicate folded players
+						{
+							//create an array of winner id and score
+							if ($resultscore == $winners[0]['score'])
+							{
+								array_push($winners, array( "id" => $player->id, "score" => (float)$handresult->Score ));
+							}
+							if ($resultscore > $winners[0]['score'])
+							{
+								$winners = [];
+								$winners[0] = array( "id" => $player->id, "score" => (float)$handresult->Score );
+							}
+							
+							subtractFunds($player->id, $player->bet); //also subtract the actual funds and reset bets
+							$dbObj->executeSqlCommand("UPDATE player SET bet=0 WHERE id=".$player->id);
+						}
 					}
 				}
+				else //only 1 player left, just give him/her the pot
+				{
+					$winners[0] = array( "id" => $players[0]->id, "score" => -1 );
+				}
+				
 				$params->setParam("winners",json_encode($winners));
 				
 				$pot = intval($params->getParam('pot')[0]->value);
@@ -571,6 +633,7 @@ while(true)
 					addFunds($winner['id'],$pot/$split); 
 				}
 				
+				renewPLU();
 				renewLU();
 				
 				$timer = 10;
@@ -603,6 +666,8 @@ while(true)
 				$sessions = $dbObj->select("SELECT * FROM session");
 				$deck->shuffleDeck(1000);
 				
+				renewPLU();
+				$timer = 1;
 				$nextstage = 1;
 				break;
 		}

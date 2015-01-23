@@ -36,7 +36,7 @@ $playerbet = intval($dbObj->parameterizedSelect($sqlCommand, $cdata)[0]->bet);
 switch($action)
 {
 	case 0: //Call
-		echo 'Calling. Matching the bet by '.($currentbet-$playerbet);
+		echo 'Calling. Matching the bet by +'.($currentbet-$playerbet);
 		break;
 	case 1: //Raise
 		echo "Raising by ".$raise.". Bet will be ".($currentbet+$raise);
