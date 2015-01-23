@@ -50,6 +50,63 @@ function mergeCards($d_cards,$p_cards)
 	return $d_cards;
 }
 
+function handleAction($action, $player)
+{
+	global $reactioncounter, $resetdata;
+	global $dbObj, $params;
+	$data=json_decode($player->data);
+	switch($action)
+		{
+			case 0:
+				$currentbet = intval($params->getParam('currentbet')[0]->value);
+				if ($player->bet < $currentbet)
+				{
+					raiseBet($player->id, ($currentbet - $player->bet)); //call
+				}
+				break;
+			case 1:
+				/*$currentbet = intval($params->getParam('currentbet')[0]->value);
+				raiseBet($player->id, (($currentbet - $player->bet) + $data->raise)); //call and raise bet*/
+				$currentbet = intval($params->getParam('currentbet')[0]->value);
+				if ($player->bet < $currentbet)
+				{
+					raiseBet($player->id, ($currentbet - $player->bet)); //call
+				}
+				raiseBet($player->id, $data->raise);
+				$reactioncounter = 0; //trigger reactions
+				$params->setParam("rotationid",$player->id); //set triggerer's id
+				break;
+			case 2:
+				subtractFunds($player->id, $player->bet);
+				$dbObj->executeSqlCommand("UPDATE player SET bet = -1 WHERE id = ".$player->id); //fold
+				break;
+		}
+	$dbObj->executeSqlCommand("UPDATE player SET data = '".$resetdata."' WHERE id = ".$player->id);
+}
+
+function handleReaction($action, $player)
+{
+	global $reactioncounter, $resetdata;
+	global $dbObj, $params;
+	$data=json_decode($player->data);
+	switch($action)
+		{
+			case 0:
+			case 1: //treat raise as call while reacting
+				$currentbet = intval($params->getParam('currentbet')[0]->value);
+				if ($player->bet < $currentbet)
+				{
+					raiseBet($player->id, ($currentbet - $player->bet)); //call
+				}
+				break;
+			case 2:
+				subtractFunds($player->id, $player->bet);
+				$dbObj->executeSqlCommand("UPDATE player SET bet = -1 WHERE id = ".$player->id); //fold
+				break;
+		}
+	$dbObj->executeSqlCommand("UPDATE player SET data = '".$resetdata."' WHERE id = ".$player->id);
+}
+
 function subtractFunds($player_id, $sub_funds)
 {
 	global $dbObj;
@@ -89,11 +146,148 @@ function raiseBet($player_id, $raise)
 	$sqlCommand = "UPDATE player SET bet = :bet, lastupdate = :lastupdate WHERE id = :id";
 	$dbObj->executePreparedStatement($sqlCommand, $id_data);
 	
-	if ($currentbet < ($newbet))
+	if ($currentbet < $newbet)
 	{
-		$params->setParam("currentbet",($newbet));
+		$params->setParam("currentbet",$newbet);
 	}
 	$params->setParam("pot",($pot + $raise));
+}
+
+function handleBetting()
+{
+	global $params, $dbObj;
+	global $nextstage, $timer, $turntimer;
+	global $reactioncounter, $rotationcounter;
+
+	$players = $dbObj->select("SELECT id,bet,data FROM player WHERE sid <> '' AND bet <> -1 ORDER BY id ASC");
+	$pcount = count($players);
+	if ($pcount<=1) {$nextstage = 1; return;} //not enough players to do any turns
+	
+	if ($reactioncounter < 0) //proceed with normal rotation
+	{
+		if ($rotationcounter >= $pcount && $reactioncounter < 0) //all players handled, proceed with next stage
+		{
+			$rotationcounter = 0;
+			$nextstage = 1;
+			renewPLU();
+			renewLU();
+			return;
+		}
+		for ($i = $rotationcounter; $i < $pcount; $i+=1)
+		{
+			$data=json_decode($players[$i]->data);
+			if ($data->confirmed==1)
+			{
+				$turntimer = 0; //reset turn timer
+				handleAction($data->action, $players[$i]); //and continue													
+				if ($reactioncounter>=0) //reactions triggered
+				{
+					//advance counter
+					$rotationcounter = 1+$i; // remember where rotation was, so reaction stops there
+					break; // into reactions next iteration
+				}
+				
+				//if this was the last player as well, actually advance the counter
+				if ($i >= $pcount-1) 
+				{
+					$rotationcounter = 1+$i;
+					break;
+				}
+			}
+			else //alternatively wait until time runs out
+			{
+				$timer = 4;
+				$turntimer += 1;
+				$params->setParam("rotationid",$players[$i]->id); //set turn-taker's id
+				if ($turntimer>=4) //out of time
+				{
+					$timer = 0;
+					$turntimer = 0;
+					handleAction($data->action, $players[$i]);							
+					if ($reactioncounter>=0) //reactions triggered
+					{
+						//advance counter
+						$rotationcounter = 1+$i; // remember where rotation was, so reaction stops there
+						break; // into reactions next iteration
+					}
+					
+					//if this was the last player as well, actually advance the counter
+					if ($i >= $pcount-1) 
+					{
+						$rotationcounter = 1+$i;
+						break;
+					}
+				}
+				else
+				{
+					$rotationcounter = $i; //resume at handled players next time
+					break; //until next main loop iteration
+				}
+			}
+		}
+	}
+	else //do reactions instead
+	{
+		if ($reactioncounter >= $rotationcounter-1) //all players handled, proceed with next stage
+		{
+			$reactioncounter = -1;
+			$params->setParam("reactionid","-1");
+			renewPLU();
+			renewLU();
+			return;
+		}
+		for ($j = $reactioncounter; $j < $rotationcounter-1; $j+=1)
+		{
+			$data=json_decode($players[$j]->data);
+			if ($players[$j]->bet < 0) //already folded, skip, just in case
+			{
+				if ($j < $pcount)
+				{
+					$j+=1;
+				}
+				else
+				{
+					break;
+				}
+			}
+			if ($data->confirmed==1)
+			{
+				$turntimer = 0; //reset turn timer
+				handleReaction($data->action, $players[$j]); //and continue
+
+				//if this was the last player as well, actually advance the counter
+				if ($j >= $rotationcounter-2) 
+				{
+					$reactioncounter = 1+$j;
+					break;
+				}
+			}
+			else //alternatively wait until time runs out
+			{
+				$timer = 4;
+				$turntimer += 1;
+				$params->setParam("reactionid",$players[$j]->id); //set reaction-taker's id
+				if ($turntimer>=4) //out of time
+				{
+					$timer = 0;
+					$turntimer = 0;
+					handleReaction($data->action, $players[$j]);
+					
+					//if this was the last player as well, actually advance the counter
+					if ($j >= $rotationcounter-2) 
+					{
+						$reactioncounter = 1+$j;
+						break;
+					}
+				}
+				else
+				{
+					$reactioncounter = $j; //resume at handled players next time
+					break; //until next main loop iteration
+				}
+			}
+		}
+	}
 }
 
 $hand = [];
@@ -107,11 +301,18 @@ $resetdata = json_encode(array( "action" => 0, "confirmed" => 0, "raise" => 0));
 $dbObj->executeSqlCommand("UPDATE player SET sid = '', hand = '', eval = '', bet = 0, data = '".$resetdata."', quit = 0"); //justincase reset player sids in db
 $params ->setParam("dealercards","");
 $params->setParam("stage","0");
+//main.php control
 $params->setParam("handbrake","0");
 $params->setParam("abort","0");
+//pot handling
 $params->setParam("currentbet","0");
 $params->setParam("pot","0");
 $params->setParam("winners",json_encode($winners));
+//pertinent to turn-taking
+$params->setParam("rotationid","0"); 
+$params->setParam("reactionid","-1");
+$rotationcounter = 0;
+$reactioncounter = -1;
 
 $maxlifetime = 15; //max session age, seconds
 
@@ -120,6 +321,7 @@ $sessions = $dbObj->select("SELECT * FROM session");
 //$players = $dbObj->select("SELECT * FROM player");
 
 $timer = 0; //for timing game stages
+$turntimer = 0; //for timing individual turn-taking 
 $stage = 0;
 $nextstage = 0;
 
@@ -260,14 +462,10 @@ while(true)
 				break;
 				
 			case 2: //preflop rotation
-				/*$players = $dbObj->select("SELECT id FROM player WHERE sid <> ''");
-				
-				foreach ($players as $player)
-				{
-					
-				}
-				renewLU();*/
-				$nextstage = 1;
+				handleBetting();
+				renewPLU();
+				renewLU();
+
 				break;
 				
 			case 3: //deal 3
@@ -286,7 +484,10 @@ while(true)
 				break;
 				
 			case 4: //1st rotation
-				$nextstage = 1;
+				handleBetting();
+				renewPLU();
+				renewLU();
+				
 				break;
 				
 			case 5: //deal 4th
@@ -302,7 +503,10 @@ while(true)
 				break;
 				
 			case 6: //2nd rotation
-				$nextstage = 1;
+				handleBetting();
+				renewPLU();
+				renewLU();
+				
 				break;
 				
 			case 7: //deal 5th
@@ -318,7 +522,10 @@ while(true)
 				break;
 				
 			case 8: //3rd rotation
-				$nextstage = 1;
+				handleBetting();
+				renewPLU();
+				renewLU();
+				
 				break;
 				
 			case 9://evaluate
@@ -385,6 +592,10 @@ while(true)
 				$params ->setParam("dealercards","");
 				$params ->setParam("pot","0");
 				$params ->setParam("currentbet","0");
+				$params->setParam("rotationid","0"); 
+				$params->setParam("reactionid","-1");
+				$rotationcounter = 0;
+				$reactioncounter = -1;
 				$deckcounter = 0;
 				$playercount = 0;
 				$winners[0] = array( "id" => 0, "score" => 0 );

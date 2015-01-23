@@ -116,13 +116,14 @@ function jsInfoUpdate(message)
 				players[id].playerAction.innerHTML = '';
 				if (stage==2)
 				{
-					players[id].playerAction.innerHTML = 'Some kind of turn taking is happening';
+					players[id].playerAction.innerHTML = 'Some kind of turn taking';
 				}
 			}
 		}
 		else
 		{
 			players[id].playerBet.innerHTML = 'Player\'s bet: -';
+			players[id].playerFunds.innerHTML = 'Funds: ' + (message[i].funds);
 			players[id].playerAction.innerHTML = 'Folded.';
 			if (parseInt(message[i].quit))
 			{
@@ -139,8 +140,14 @@ function jsGameUpdate(message)
 	switch(message.stage)
 	{
 		case 0:
+			//tempcleanup
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
 			break;
 		case 1:
+			//tempcleanup
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
 			//reset all cards
 			jsHideAllCards();
 			
@@ -163,6 +170,9 @@ function jsGameUpdate(message)
 			}
 			break;
 		case 2:
+		case 4:
+		case 6:
+		case 8:
 			if (message.reactionid > -1)
 			{
 				infotab.getElementsByTagName('p')[0].innerHTML = 'Player '+message.rotationid+'\s raise.';
@@ -187,15 +197,21 @@ function jsGameUpdate(message)
 			}
 			break;
 		case 7:
+			//tempcleanup
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
 			var len = message.dealercards.length;
 			for (var i=0; i < len; i+=1)
 			{
 				jsSetCard(0,i,message.dealercards[i].frontImage,1);
 			}
 			break;
-		case 8:
-			break;
+		/*case 8:
+			break;*/
 		case 9:
+			//tempcleanup
+			infotab.getElementsByTagName('p')[0].innerHTML = '';
+			infotab.getElementsByTagName('p')[1].innerHTML = '';
 			//showdown
 			var playercount = message.hands.length;
 			for (var i=0; i < playercount; i+=1)
@@ -207,7 +223,7 @@ function jsGameUpdate(message)
 			var resultcount = message.results.length;
 			for (var i=0; i < resultcount; i+=1)
 			{
-				players[message.results[i].id].playerHand.innerHTML=message.results[i].eval.score+'<br>'+message.results[i].eval.note;
+				players[message.results[i].id].playerHand.innerHTML=/*message.results[i].eval.score+'<br>'+*/message.results[i].eval.note;
 			}
 			break;
 		default:

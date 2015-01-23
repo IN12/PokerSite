@@ -29,7 +29,7 @@ $type = 2;
 $stage = intval($params->getParam('stage')[0]->value);
 $ldate = $params->getParam('lastupdate')[0]->value;
 
-if($stage > 0){
+if($stage >= 3){
 	$dealercards = $params->getParam('dealercards')[0]->value;
 	$content = array( "stage" => 5, "dealercards" => json_decode($dealercards) );
 	$message = array( "type" => 4, "message" => $content );	//just run update stage
@@ -118,6 +118,9 @@ while(true)
 					$content = array( "stage" => $stage, "hand" => json_decode($hand), "owner" => $pid, "players" => $players );
 					break;
 				case 2:
+				case 4:
+				case 6:
+				case 8:
 					$rotationid = intval($params->getParam('rotationid')[0]->value);
 					$reactionid = intval($params->getParam('reactionid')[0]->value);
 					$content = array( "stage" => $stage, "rotationid" => $rotationid,"reactionid" => $reactionid );
@@ -132,9 +135,9 @@ while(true)
 					
 					$content = array( "stage" => $stage, "dealercards" => json_decode($dealercards));
 					break;
-				case 8:
+				/*case 8:
 					$content = array( "stage" => $stage);
-					break;
+					break;*/
 				case 9:
 					$players = $dbObj->select("SELECT id,hand,eval FROM player WHERE sid <> ''");
 					
